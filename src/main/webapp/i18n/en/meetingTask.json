@@ -1,0 +1,32 @@
+{
+  "meetingsApp": {
+    "meetingTask": {
+      "home": {
+        "title": "Meeting Tasks",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Meeting Task",
+        "createOrEditLabel": "Create or edit a Meeting Task",
+        "notFound": "No Meeting Tasks found"
+      },
+      "created": "A new Meeting Task is created with identifier {{ param }}",
+      "updated": "A Meeting Task is updated with identifier {{ param }}",
+      "deleted": "A Meeting Task is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Meeting Task {{ id }}?"
+      },
+      "detail": {
+        "title": "Meeting Task"
+      },
+      "id": "ID",
+      "type": "Type",
+      "title": "Title",
+      "description": "Description",
+      "dueAt": "Due At",
+      "status": "Status",
+      "remindBeforeMinutes": "Remind Before Minutes",
+      "assignee": "Assignee",
+      "assignedBy": "Assigned By",
+      "meeting": "Meeting"
+    }
+  }
+}

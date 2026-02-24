@@ -1,0 +1,29 @@
+{
+  "meetingsApp": {
+    "meetingApproval": {
+      "home": {
+        "title": "Meeting Approvals",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Meeting Approval",
+        "createOrEditLabel": "Create or edit a Meeting Approval",
+        "notFound": "No Meeting Approvals found"
+      },
+      "created": "A new Meeting Approval is created with identifier {{ param }}",
+      "updated": "A Meeting Approval is updated with identifier {{ param }}",
+      "deleted": "A Meeting Approval is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Meeting Approval {{ id }}?"
+      },
+      "detail": {
+        "title": "Meeting Approval"
+      },
+      "id": "ID",
+      "step": "Step",
+      "decision": "Decision",
+      "reason": "Reason",
+      "decidedAt": "Decided At",
+      "decidedBy": "Decided By",
+      "meeting": "Meeting"
+    }
+  }
+}

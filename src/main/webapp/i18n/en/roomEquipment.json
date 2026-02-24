@@ -1,0 +1,26 @@
+{
+  "meetingsApp": {
+    "roomEquipment": {
+      "home": {
+        "title": "Room Equipments",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Room Equipment",
+        "createOrEditLabel": "Create or edit a Room Equipment",
+        "notFound": "No Room Equipments found"
+      },
+      "created": "A new Room Equipment is created with identifier {{ param }}",
+      "updated": "A Room Equipment is updated with identifier {{ param }}",
+      "deleted": "A Room Equipment is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Room Equipment {{ id }}?"
+      },
+      "detail": {
+        "title": "Room Equipment"
+      },
+      "id": "ID",
+      "quantity": "Quantity",
+      "room": "Room",
+      "equipment": "Equipment"
+    }
+  }
+}

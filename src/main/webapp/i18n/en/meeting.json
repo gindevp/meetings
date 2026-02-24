@@ -1,0 +1,47 @@
+{
+  "meetingsApp": {
+    "meeting": {
+      "home": {
+        "title": "Meetings",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Meeting",
+        "createOrEditLabel": "Create or edit a Meeting",
+        "notFound": "No Meetings found"
+      },
+      "created": "A new Meeting is created with identifier {{ param }}",
+      "updated": "A Meeting is updated with identifier {{ param }}",
+      "deleted": "A Meeting is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Meeting {{ id }}?"
+      },
+      "detail": {
+        "title": "Meeting"
+      },
+      "id": "ID",
+      "title": "Title",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "mode": "Mode",
+      "onlineLink": "Online Link",
+      "objectives": "Objectives",
+      "note": "Note",
+      "status": "Status",
+      "createdAt": "Created At",
+      "submittedAt": "Submitted At",
+      "approvedAt": "Approved At",
+      "canceledAt": "Canceled At",
+      "agendaItems": "Agenda Items",
+      "participants": "Participants",
+      "tasks": "Tasks",
+      "approvals": "Approvals",
+      "documents": "Documents",
+      "incidents": "Incidents",
+      "type": "Type",
+      "level": "Level",
+      "organizerDepartment": "Organizer Department",
+      "room": "Room",
+      "requester": "Requester",
+      "host": "Host"
+    }
+  }
+}

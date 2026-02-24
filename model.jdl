@@ -1,0 +1,177 @@
+enum MeetingMode {
+  IN_PERSON,
+  ONLINE,
+  HYBRID
+}
+
+enum MeetingStatus {
+  DRAFT,
+  PENDING_APPROVAL,
+  APPROVED,
+  REJECTED,
+  CANCELED,
+  COMPLETED
+}
+
+enum ParticipantRole {
+  HOST,
+  MAIN,
+  ATTENDEE,
+  SECRETARY
+}
+
+enum AttendanceStatus {
+  NOT_MARKED,
+  PRESENT,
+  ABSENT,
+  EXCUSED
+}
+
+enum TaskType {
+  PRE_MEETING,
+  POST_MEETING
+}
+
+enum TaskStatus {
+  TODO,
+  IN_PROGRESS,
+  DONE,
+  OVERDUE
+}
+
+enum ApprovalDecision {
+  APPROVED,
+  REJECTED
+}
+
+entity Department {
+  code String required unique,
+  name String required,
+  description String
+}
+
+entity Room {
+  code String required unique,
+  name String required,
+  location String,
+  capacity Integer required min(1),
+  active Boolean required
+}
+
+entity Equipment {
+  code String required unique,
+  name String required,
+  description String
+}
+
+entity RoomEquipment {
+  quantity Integer required min(0)
+}
+
+entity MeetingType {
+  name String required unique,
+  description String
+}
+
+entity MeetingLevel {
+  name String required unique,
+  description String
+}
+
+entity Meeting {
+  title String required,
+  startTime Instant required,
+  endTime Instant required,
+  mode MeetingMode required,
+  onlineLink String,
+  objectives TextBlob,
+  note TextBlob,
+  status MeetingStatus required,
+  createdAt Instant required,
+  submittedAt Instant,
+  approvedAt Instant,
+  canceledAt Instant
+}
+
+entity AgendaItem {
+  itemOrder Integer required min(1),
+  topic String required,
+  presenterName String,
+  durationMinutes Integer,
+  note TextBlob
+}
+
+entity MeetingParticipant {
+  role ParticipantRole required,
+  isRequired Boolean required,
+  attendance AttendanceStatus required,
+  absentReason String
+}
+
+entity MeetingTask {
+  type TaskType required,
+  title String required,
+  description TextBlob,
+  dueAt Instant,
+  status TaskStatus required,
+  remindBeforeMinutes Integer
+}
+
+entity MeetingApproval {
+  step Integer required min(1),
+  decision ApprovalDecision required,
+  reason String,
+  decidedAt Instant required
+}
+
+entity MeetingDocument {
+  docType String required,         // "MINUTES", "ATTACHMENT", ...
+  fileName String required,
+  contentType String,
+  file Blob,
+  uploadedAt Instant required
+}
+
+entity Incident {
+  title String required,
+  description TextBlob,
+  reportedAt Instant required,
+  severity String,
+  status String
+}
+
+relationship ManyToOne {
+  RoomEquipment{room(code) required} to Room,
+  RoomEquipment{equipment(code) required} to Equipment
+}
+
+relationship ManyToOne {
+  Meeting{type(name) required} to MeetingType,
+  Meeting{level(name) required} to MeetingLevel,
+  Meeting{organizerDepartment(name) required} to Department,
+  Meeting{room(name)} to Room, // optional vì ONLINE không cần phòng
+  Meeting{requester(login) required} to User with builtInEntity,
+  Meeting{host(login) required} to User with builtInEntity
+}
+
+relationship OneToMany {
+  Meeting{agendaItems} to AgendaItem{meeting required},
+  Meeting{participants} to MeetingParticipant{meeting required},
+  Meeting{tasks} to MeetingTask{meeting required},
+  Meeting{approvals} to MeetingApproval{meeting required},
+  Meeting{documents} to MeetingDocument{meeting required},
+  Meeting{incidents} to Incident{meeting required}
+}
+
+relationship ManyToOne {
+  MeetingParticipant{user(login) required} to User with builtInEntity,
+  MeetingTask{assignee(login)} to User with builtInEntity,
+  MeetingTask{assignedBy(login)} to User with builtInEntity,
+  MeetingApproval{decidedBy(login) required} to User with builtInEntity,
+  MeetingDocument{uploadedBy(login) required} to User with builtInEntity,
+  Incident{reportedBy(login) required} to User with builtInEntity
+}
+
+dto * with mapstruct
+service * with serviceClass
+paginate Meeting, Room, Department, Equipment with pagination

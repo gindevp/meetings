@@ -1,0 +1,13 @@
+export enum MeetingStatus {
+  DRAFT = 'DRAFT',
+
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+
+  APPROVED = 'APPROVED',
+
+  REJECTED = 'REJECTED',
+
+  CANCELED = 'CANCELED',
+
+  COMPLETED = 'COMPLETED',
+}

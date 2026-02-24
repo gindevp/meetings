@@ -1,0 +1,30 @@
+{
+  "meetingsApp": {
+    "meetingDocument": {
+      "home": {
+        "title": "Meeting Documents",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Meeting Document",
+        "createOrEditLabel": "Create or edit a Meeting Document",
+        "notFound": "No Meeting Documents found"
+      },
+      "created": "A new Meeting Document is created with identifier {{ param }}",
+      "updated": "A Meeting Document is updated with identifier {{ param }}",
+      "deleted": "A Meeting Document is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Meeting Document {{ id }}?"
+      },
+      "detail": {
+        "title": "Meeting Document"
+      },
+      "id": "ID",
+      "docType": "Doc Type",
+      "fileName": "File Name",
+      "contentType": "Content Type",
+      "file": "File",
+      "uploadedAt": "Uploaded At",
+      "uploadedBy": "Uploaded By",
+      "meeting": "Meeting"
+    }
+  }
+}

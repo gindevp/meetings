@@ -1,0 +1,25 @@
+{
+  "meetingsApp": {
+    "meetingLevel": {
+      "home": {
+        "title": "Meeting Levels",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Meeting Level",
+        "createOrEditLabel": "Create or edit a Meeting Level",
+        "notFound": "No Meeting Levels found"
+      },
+      "created": "A new Meeting Level is created with identifier {{ param }}",
+      "updated": "A Meeting Level is updated with identifier {{ param }}",
+      "deleted": "A Meeting Level is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Meeting Level {{ id }}?"
+      },
+      "detail": {
+        "title": "Meeting Level"
+      },
+      "id": "ID",
+      "name": "Name",
+      "description": "Description"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "meetingsApp": {
+    "ParticipantRole": {
+      "null": "",
+      "HOST": "HOST",
+      "MAIN": "MAIN",
+      "ATTENDEE": "ATTENDEE",
+      "SECRETARY": "SECRETARY"
+    }
+  }
+}

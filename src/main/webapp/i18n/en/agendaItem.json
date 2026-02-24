@@ -1,0 +1,29 @@
+{
+  "meetingsApp": {
+    "agendaItem": {
+      "home": {
+        "title": "Agenda Items",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Agenda Item",
+        "createOrEditLabel": "Create or edit a Agenda Item",
+        "notFound": "No Agenda Items found"
+      },
+      "created": "A new Agenda Item is created with identifier {{ param }}",
+      "updated": "A Agenda Item is updated with identifier {{ param }}",
+      "deleted": "A Agenda Item is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Agenda Item {{ id }}?"
+      },
+      "detail": {
+        "title": "Agenda Item"
+      },
+      "id": "ID",
+      "itemOrder": "Item Order",
+      "topic": "Topic",
+      "presenterName": "Presenter Name",
+      "durationMinutes": "Duration Minutes",
+      "note": "Note",
+      "meeting": "Meeting"
+    }
+  }
+}

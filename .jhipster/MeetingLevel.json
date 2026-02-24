@@ -1,0 +1,22 @@
+{
+  "annotations": {
+    "changelogDate": "20260224094535"
+  },
+  "applications": "*",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "name",
+      "fieldType": "String",
+      "fieldValidateRules": ["required", "unique"]
+    },
+    {
+      "fieldName": "description",
+      "fieldType": "String"
+    }
+  ],
+  "name": "MeetingLevel",
+  "relationships": [],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

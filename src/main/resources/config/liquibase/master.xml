@@ -12,7 +12,28 @@
     <property name="timeType" value="time(6)" dbms="mysql"/>
 
     <include file="config/liquibase/changelog/00000000000000_initial_schema.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094530_added_entity_Department.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094531_added_entity_Room.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094532_added_entity_Equipment.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094533_added_entity_RoomEquipment.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094534_added_entity_MeetingType.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094535_added_entity_MeetingLevel.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094536_added_entity_Meeting.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094537_added_entity_AgendaItem.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094538_added_entity_MeetingParticipant.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094539_added_entity_MeetingTask.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094540_added_entity_MeetingApproval.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094541_added_entity_MeetingDocument.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094542_added_entity_Incident.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
+    <include file="config/liquibase/changelog/20260224094533_added_entity_constraints_RoomEquipment.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094536_added_entity_constraints_Meeting.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094537_added_entity_constraints_AgendaItem.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094538_added_entity_constraints_MeetingParticipant.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094539_added_entity_constraints_MeetingTask.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094540_added_entity_constraints_MeetingApproval.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094541_added_entity_constraints_MeetingDocument.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224094542_added_entity_constraints_Incident.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 </databaseChangeLog>

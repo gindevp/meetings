@@ -1,0 +1,11 @@
+id;role;is_required;attendance;absent_reason;user_id;meeting_id
+1;MAIN;true;PRESENT;psst;1;1
+2;MAIN;true;EXCUSED;stark;2;2
+3;ATTENDEE;false;ABSENT;gah oh qua;2;3
+4;SECRETARY;false;PRESENT;meh who till;1;4
+5;HOST;false;EXCUSED;stingy eek uh-huh;1;5
+6;MAIN;false;NOT_MARKED;recompense lady woot;1;6
+7;SECRETARY;false;PRESENT;hmph finally;2;7
+8;MAIN;true;PRESENT;where stratify reclassify;1;8
+9;ATTENDEE;true;PRESENT;polyester ripe;2;9
+10;HOST;true;ABSENT;helpless for whenever;2;10

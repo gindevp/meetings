@@ -1,0 +1,9 @@
+{
+  "meetingsApp": {
+    "TaskType": {
+      "null": "",
+      "PRE_MEETING": "PRE_MEETING",
+      "POST_MEETING": "POST_MEETING"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "annotations": {
+    "changelogDate": "20260224094537"
+  },
+  "applications": "*",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "itemOrder",
+      "fieldType": "Integer",
+      "fieldValidateRules": ["required", "min"],
+      "fieldValidateRulesMin": "1"
+    },
+    {
+      "fieldName": "topic",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "presenterName",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "durationMinutes",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "note",
+      "fieldType": "TextBlob"
+    }
+  ],
+  "name": "AgendaItem",
+  "relationships": [
+    {
+      "otherEntityName": "meeting",
+      "otherEntityRelationshipName": "agendaItems",
+      "relationshipName": "meeting",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

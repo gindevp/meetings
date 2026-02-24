@@ -1,0 +1,9 @@
+{
+  "meetingsApp": {
+    "ApprovalDecision": {
+      "null": "",
+      "APPROVED": "APPROVED",
+      "REJECTED": "REJECTED"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "annotations": {
+    "changelogDate": "20260224094538"
+  },
+  "applications": "*",
+  "dto": "mapstruct",
+  "fields": [
+    {
+      "fieldName": "role",
+      "fieldType": "ParticipantRole",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "HOST,MAIN,ATTENDEE,SECRETARY"
+    },
+    {
+      "fieldName": "isRequired",
+      "fieldType": "Boolean",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "attendance",
+      "fieldType": "AttendanceStatus",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "NOT_MARKED,PRESENT,ABSENT,EXCUSED"
+    },
+    {
+      "fieldName": "absentReason",
+      "fieldType": "String"
+    }
+  ],
+  "name": "MeetingParticipant",
+  "relationships": [
+    {
+      "otherEntityField": "login",
+      "otherEntityName": "user",
+      "relationshipName": "user",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required",
+      "relationshipWithBuiltInEntity": true
+    },
+    {
+      "otherEntityName": "meeting",
+      "otherEntityRelationshipName": "participants",
+      "relationshipName": "meeting",
+      "relationshipSide": "right",
+      "relationshipType": "many-to-one",
+      "relationshipValidateRules": "required"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

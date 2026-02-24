@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+    <!--
+        Added the constraints for entity Meeting.
+    -->
+    <changeSet id="20260224094536-2" author="jhipster">
+
+        <addForeignKeyConstraint baseColumnNames="type_id"
+                                 baseTableName="meeting"
+                                 constraintName="fk_meeting__type_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="meeting_type"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="level_id"
+                                 baseTableName="meeting"
+                                 constraintName="fk_meeting__level_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="meeting_level"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="organizer_department_id"
+                                 baseTableName="meeting"
+                                 constraintName="fk_meeting__organizer_department_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="department"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="room_id"
+                                 baseTableName="meeting"
+                                 constraintName="fk_meeting__room_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="room"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="requester_id"
+                                 baseTableName="meeting"
+                                 constraintName="fk_meeting__requester_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="jhi_user"
+                                 />
+
+        <addForeignKeyConstraint baseColumnNames="host_id"
+                                 baseTableName="meeting"
+                                 constraintName="fk_meeting__host_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="jhi_user"
+                                 />
+    </changeSet>
+</databaseChangeLog>
