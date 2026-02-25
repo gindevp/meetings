@@ -34,6 +34,7 @@
     <include file="config/liquibase/changelog/20260224094540_added_entity_constraints_MeetingApproval.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260224094541_added_entity_constraints_MeetingDocument.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260224094542_added_entity_constraints_Incident.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202602240001_add_soft_delete.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 </databaseChangeLog>

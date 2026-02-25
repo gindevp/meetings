@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="
+      http://www.liquibase.org/xml/ns/dbchangelog
+      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <!-- Department -->
+  <changeSet id="20260224-01-add-status-department" author="quet">
+    <addColumn tableName="department">
+      <column name="status" type="varchar(30)" defaultValue="ACTIVE">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <createIndex tableName="department" indexName="idx_department_status">
+      <column name="status"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- Equipment -->
+  <changeSet id="20260224-02-add-status-equipment" author="quet">
+    <addColumn tableName="equipment">
+      <column name="status" type="varchar(30)" defaultValue="ACTIVE">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <createIndex tableName="equipment" indexName="idx_equipment_status">
+      <column name="status"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- Meeting Type -->
+  <changeSet id="20260224-03-add-status-meeting-type" author="quet">
+    <addColumn tableName="meeting_type">
+      <column name="status" type="varchar(30)" defaultValue="ACTIVE">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <createIndex tableName="meeting_type" indexName="idx_meeting_type_status">
+      <column name="status"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- Meeting Level -->
+  <changeSet id="20260224-04-add-status-meeting-level" author="quet">
+    <addColumn tableName="meeting_level">
+      <column name="status" type="varchar(30)" defaultValue="ACTIVE">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <createIndex tableName="meeting_level" indexName="idx_meeting_level_status">
+      <column name="status"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- Meeting -->
+  <changeSet id="20260224-05-add-status-meeting" author="quet">
+    <addColumn tableName="meeting">
+      <column name="status_record" type="varchar(30)" defaultValue="ACTIVE">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    <createIndex tableName="meeting" indexName="idx_meeting_status_record">
+      <column name="status_record"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>
