@@ -1029,6 +1029,9 @@
             <id>webapp</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>!skip.webapp</name>
+                </property>
             </activation>
             <properties>
                 <!-- default Spring profiles -->
