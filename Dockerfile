@@ -4,10 +4,12 @@ WORKDIR /app
 # Copy project files needed by Maven build plugins
 COPY pom.xml .
 COPY sonar-project.properties .
+COPY package.json .
+COPY package-lock.json .
 COPY src ./src
 
-# Build Spring Boot jar, skip tests/frontend and non-essential quality plugins in container build
-RUN mvn -DskipTests -Dskip.webapp -Dcheckstyle.skip=true -Dspotless.skip=true -Djacoco.skip=true package
+# Build backend jar only for Railway (disable webapp profile explicitly)
+RUN mvn -DskipTests -Dskip.webapp=true -P!webapp -Dcheckstyle.skip=true -Dspotless.skip=true -Djacoco.skip=true package
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
