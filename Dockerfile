@@ -1,8 +1,9 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /app
 
-# Copy Maven config and sources
+# Copy project files needed by Maven build plugins
 COPY pom.xml .
+COPY sonar-project.properties .
 COPY src ./src
 
 # Build Spring Boot jar, skip tests and frontend/webapp
