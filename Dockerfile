@@ -6,8 +6,8 @@ COPY pom.xml .
 COPY sonar-project.properties .
 COPY src ./src
 
-# Build Spring Boot jar, skip tests and frontend/webapp
-RUN mvn -DskipTests -Dskip.webapp package
+# Build Spring Boot jar, skip tests/frontend and non-essential quality plugins in container build
+RUN mvn -DskipTests -Dskip.webapp -Dcheckstyle.skip=true -Dspotless.skip=true -Djacoco.skip=true package
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
