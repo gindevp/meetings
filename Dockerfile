@@ -1,0 +1,24 @@
+FROM maven:3.9-eclipse-temurin-17 AS builder
+WORKDIR /app
+
+# Copy Maven config and sources
+COPY pom.xml .
+COPY src ./src
+
+# Build Spring Boot jar, skip tests and frontend/webapp
+RUN mvn -DskipTests -Dskip.webapp package
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+
+# Copy built jar from builder image
+COPY --from=builder /app/target/*.jar app.jar
+
+# Railway injects PORT dynamically; default to 8080 for local docker run
+ENV SPRING_PROFILES_ACTIVE=prod \
+    PORT=8080
+
+EXPOSE 8080
+
+ENTRYPOINT ["sh", "-c", "java -Xms256m -Xmx512m -Dserver.port=${PORT} -jar /app/app.jar"]
+

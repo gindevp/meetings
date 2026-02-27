@@ -21,9 +21,6 @@ logging:
     com.gindevp.meeting: DEBUG
 
 spring:
-  docker:
-    compose:
-      enabled: false
   devtools:
     restart:
       enabled: true
