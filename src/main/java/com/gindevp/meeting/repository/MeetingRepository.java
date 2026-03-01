@@ -36,13 +36,13 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     }
 
     @Query(
-        value = "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host",
-        countQuery = "select count(meeting) from Meeting meeting"
+        value = "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host where meeting.statusRecord = 'ACTIVE'",
+        countQuery = "select count(meeting) from Meeting meeting where meeting.statusRecord = 'ACTIVE'"
     )
     Page<Meeting> findAllWithToOneRelationships(Pageable pageable);
 
     @Query(
-        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host"
+        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host where meeting.statusRecord = 'ACTIVE'"
     )
     List<Meeting> findAllWithToOneRelationships();
 

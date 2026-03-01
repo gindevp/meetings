@@ -149,6 +149,16 @@ public class MeetingWorkflowService {
         return meetingMapper.toDto(meeting);
     }
 
+    public MeetingDTO cancel(Long meetingId) {
+        Meeting meeting = getMeeting(meetingId);
+        if (meeting.getStatus() == MeetingStatus.CANCELED) {
+            throw new BadRequestAlertException("Meeting already cancelled", "meeting", "alreadyCancelled");
+        }
+        meeting.setStatus(MeetingStatus.CANCELED);
+        meeting.setCanceledAt(Instant.now());
+        return meetingMapper.toDto(meetingRepository.save(meeting));
+    }
+
     private int resolvePendingStep(Meeting meeting) {
         Long id = meeting.getId();
         Instant cycleFrom = meeting.getSubmittedAt();

@@ -48,6 +48,8 @@ public class MeetingDTO implements Serializable {
 
     private Instant canceledAt;
 
+    private String statusRecord;
+
     @NotNull
     private MeetingTypeDTO type;
 
@@ -169,6 +171,14 @@ public class MeetingDTO implements Serializable {
         this.canceledAt = canceledAt;
     }
 
+    public String getStatusRecord() {
+        return statusRecord;
+    }
+
+    public void setStatusRecord(String statusRecord) {
+        this.statusRecord = statusRecord;
+    }
+
     public MeetingTypeDTO getType() {
         return type;
     }
@@ -255,6 +265,7 @@ public class MeetingDTO implements Serializable {
             ", submittedAt='" + getSubmittedAt() + "'" +
             ", approvedAt='" + getApprovedAt() + "'" +
             ", canceledAt='" + getCanceledAt() + "'" +
+            ", statusRecord='" + getStatusRecord() + "'" +
             ", type=" + getType() +
             ", level=" + getLevel() +
             ", organizerDepartment=" + getOrganizerDepartment() +

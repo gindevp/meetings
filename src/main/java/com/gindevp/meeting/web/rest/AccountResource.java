@@ -16,7 +16,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import tech.jhipster.config.JHipsterProperties;
 
 /**
  * REST controller for managing the current user's account.
@@ -40,19 +42,22 @@ public class AccountResource {
 
     private final MailService mailService;
 
-    public AccountResource(UserRepository userRepository, UserService userService, MailService mailService) {
+    private final JHipsterProperties jHipsterProperties;
+
+    public AccountResource(
+        UserRepository userRepository,
+        UserService userService,
+        MailService mailService,
+        JHipsterProperties jHipsterProperties
+    ) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.mailService = mailService;
+        this.jHipsterProperties = jHipsterProperties;
     }
 
     /**
-     * {@code POST  /register} : register the user.
-     *
-     * @param managedUserVM the managed user View Model.
-     * @throws InvalidPasswordException {@code 400 (Bad Request)} if the password is incorrect.
-     * @throws EmailAlreadyUsedException {@code 400 (Bad Request)} if the email is already used.
-     * @throws LoginAlreadyUsedException {@code 400 (Bad Request)} if the login is already used.
+     * POST /register : register the user.
      */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -65,24 +70,33 @@ public class AccountResource {
     }
 
     /**
-     * {@code GET  /activate} : activate the registered user.
-     *
-     * @param key the activation key.
-     * @throws RuntimeException {@code 500 (Internal Server Error)} if the user couldn't be activated.
+     * GET /activate : activate the registered user.
+     * Returns HTML page with success message.
      */
-    @GetMapping("/activate")
-    public void activateAccount(@RequestParam(value = "key") String key) {
+    @GetMapping(value = "/activate", produces = MediaType.TEXT_HTML_VALUE)
+    @ResponseBody
+    public String activateAccountHtml(@RequestParam(value = "key") String key) {
+        Optional<User> user = userService.activateRegistration(key);
+        if (!user.isPresent()) {
+            return "<html><body><h1>Activation Failed</h1><p>Invalid activation key.</p><a href=\"/\">Go to Home</a></body></html>";
+        }
+        return "<!DOCTYPE html><html><head><title>Activation Success</title></head><body style=\"font-family: Arial, sans-serif; text-align: center; padding: 50px;\"><h1 style=\"color: green;\">Account Activated Successfully!</h1><p>Your account has been activated. You can now login.</p><a href=\"http://localhost:5173/login\" style=\"background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">Go to Login</a></body></html>";
+    }
+
+    /**
+     * GET /activate : activate the registered user (redirect version).
+     */
+    @GetMapping("/activate-redirect")
+    public String activateAccount(@RequestParam(value = "key") String key) {
         Optional<User> user = userService.activateRegistration(key);
         if (!user.isPresent()) {
             throw new AccountResourceException("No user was found for this activation key");
         }
+        return "redirect:" + jHipsterProperties.getMail().getBaseUrl() + "/activate-success";
     }
 
     /**
-     * {@code GET  /account} : get the current user.
-     *
-     * @return the current user.
-     * @throws RuntimeException {@code 500 (Internal Server Error)} if the user couldn't be returned.
+     * GET /account : get the current user.
      */
     @GetMapping("/account")
     public AdminUserDTO getAccount() {
@@ -93,11 +107,7 @@ public class AccountResource {
     }
 
     /**
-     * {@code POST  /account} : update the current user information.
-     *
-     * @param userDTO the current user information.
-     * @throws EmailAlreadyUsedException {@code 400 (Bad Request)} if the email is already used.
-     * @throws RuntimeException {@code 500 (Internal Server Error)} if the user login wasn't found.
+     * POST /account : update the current user information.
      */
     @PostMapping("/account")
     public void saveAccount(@Valid @RequestBody AdminUserDTO userDTO) {
@@ -121,10 +131,7 @@ public class AccountResource {
     }
 
     /**
-     * {@code POST  /account/change-password} : changes the current user's password.
-     *
-     * @param passwordChangeDto current and new password.
-     * @throws InvalidPasswordException {@code 400 (Bad Request)} if the new password is incorrect.
+     * POST /account/change-password : changes the current user's password.
      */
     @PostMapping(path = "/account/change-password")
     public void changePassword(@RequestBody PasswordChangeDTO passwordChangeDto) {
@@ -135,9 +142,7 @@ public class AccountResource {
     }
 
     /**
-     * {@code POST   /account/reset-password/init} : Send an email to reset the password of the user.
-     *
-     * @param mail the mail of the user.
+     * POST /account/reset-password/init : Send an email to reset the password.
      */
     @PostMapping(path = "/account/reset-password/init")
     public void requestPasswordReset(@RequestBody String mail) {
@@ -145,21 +150,33 @@ public class AccountResource {
         if (user.isPresent()) {
             mailService.sendPasswordResetMail(user.orElseThrow());
         } else {
-            // Pretend the request has been successful to prevent checking which emails really exist
-            // but log that an invalid attempt has been made
             LOG.warn("Password reset requested for non existing mail");
         }
     }
 
     /**
-     * {@code POST   /account/reset-password/finish} : Finish to reset the password of the user.
-     *
-     * @param keyAndPassword the generated key and the new password.
-     * @throws InvalidPasswordException {@code 400 (Bad Request)} if the password is incorrect.
-     * @throws RuntimeException {@code 500 (Internal Server Error)} if the password could not be reset.
+     * POST /account/reset-password/finish : Finish to reset the password.
+     * Returns HTML page with success message.
+     */
+    @PostMapping(path = "/account/reset-password/finish", produces = MediaType.TEXT_HTML_VALUE)
+    @ResponseBody
+    public String finishPasswordResetHtml(@RequestBody KeyAndPasswordVM keyAndPassword) {
+        if (isPasswordLengthInvalid(keyAndPassword.getNewPassword())) {
+            throw new InvalidPasswordException();
+        }
+        Optional<User> user = userService.completePasswordReset(keyAndPassword.getNewPassword(), keyAndPassword.getKey());
+
+        if (!user.isPresent()) {
+            return "<html><body><h1>Password Reset Failed</h1><p>Invalid reset key.</p><a href=\"/\">Go to Home</a></body></html>";
+        }
+        return "<!DOCTYPE html><html><head><title>Password Reset Success</title></head><body style=\"font-family: Arial, sans-serif; text-align: center; padding: 50px;\"><h1 style=\"color: green;\">Password Reset Successfully!</h1><p>Your password has been reset. You can now login with your new password.</p><a href=\"/login\" style=\"background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">Go to Login</a></body></html>";
+    }
+
+    /**
+     * POST /account/reset-password/finish : Finish to reset the password (redirect version).
      */
     @PostMapping(path = "/account/reset-password/finish")
-    public void finishPasswordReset(@RequestBody KeyAndPasswordVM keyAndPassword) {
+    public String finishPasswordReset(@RequestBody KeyAndPasswordVM keyAndPassword) {
         if (isPasswordLengthInvalid(keyAndPassword.getNewPassword())) {
             throw new InvalidPasswordException();
         }
@@ -168,6 +185,7 @@ public class AccountResource {
         if (!user.isPresent()) {
             throw new AccountResourceException("No user was found for this reset key");
         }
+        return "redirect:" + jHipsterProperties.getMail().getBaseUrl() + "/password-reset-success";
     }
 
     private static boolean isPasswordLengthInvalid(String password) {

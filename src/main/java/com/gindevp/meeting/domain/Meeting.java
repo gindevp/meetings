@@ -71,6 +71,9 @@ public class Meeting implements Serializable {
     @Column(name = "canceled_at")
     private Instant canceledAt;
 
+    @Column(name = "status_record")
+    private String statusRecord;
+
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "meeting")
     @JsonIgnoreProperties(value = { "meeting" }, allowSetters = true)
     private Set<AgendaItem> agendaItems = new HashSet<>();
@@ -287,6 +290,19 @@ public class Meeting implements Serializable {
 
     public void setCanceledAt(Instant canceledAt) {
         this.canceledAt = canceledAt;
+    }
+
+    public String getStatusRecord() {
+        return this.statusRecord;
+    }
+
+    public Meeting statusRecord(String statusRecord) {
+        this.setStatusRecord(statusRecord);
+        return this;
+    }
+
+    public void setStatusRecord(String statusRecord) {
+        this.statusRecord = statusRecord;
     }
 
     public Set<AgendaItem> getAgendaItems() {
@@ -589,6 +605,7 @@ public class Meeting implements Serializable {
             ", submittedAt='" + getSubmittedAt() + "'" +
             ", approvedAt='" + getApprovedAt() + "'" +
             ", canceledAt='" + getCanceledAt() + "'" +
+            ", statusRecord='" + getStatusRecord() + "'" +
             "}";
     }
 }
