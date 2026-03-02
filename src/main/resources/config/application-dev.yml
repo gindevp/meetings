@@ -50,7 +50,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: nguyenhuuquyet07092001@gmail.com
-    password: kxry dhsl whns mkda
+    password: XXXXXXXX
     properties:
       mail:
         smtp:
