@@ -1,6 +1,8 @@
 package com.gindevp.meeting.service;
 
 import com.gindevp.meeting.domain.Meeting;
+import com.gindevp.meeting.domain.enumeration.ApprovalDecision;
+import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import com.gindevp.meeting.repository.MeetingRepository;
 import com.gindevp.meeting.service.dto.MeetingDTO;
 import com.gindevp.meeting.service.mapper.MeetingMapper;
@@ -94,7 +96,14 @@ public class MeetingService {
      * @return the list of entities.
      */
     public Page<MeetingDTO> findAllWithEagerRelationships(Pageable pageable) {
-        return meetingRepository.findAllWithEagerRelationships(pageable).map(meetingMapper::toDto);
+        Page<MeetingDTO> page = meetingRepository.findAllWithEagerRelationships(pageable).map(meetingMapper::toDto);
+        // Add rejection reason for rejected meetings
+        page.forEach(dto -> {
+            if (dto.getStatus() == MeetingStatus.REJECTED) {
+                meetingRepository.findRejectionReasonByMeetingId(dto.getId(), ApprovalDecision.REJECTED).ifPresent(dto::setRejectionReason);
+            }
+        });
+        return page;
     }
 
     /**
@@ -106,7 +115,17 @@ public class MeetingService {
     @Transactional(readOnly = true)
     public Optional<MeetingDTO> findOne(Long id) {
         LOG.debug("Request to get Meeting : {}", id);
-        return meetingRepository.findOneWithEagerRelationships(id).map(meetingMapper::toDto);
+        return meetingRepository
+            .findOneWithEagerRelationships(id)
+            .map(meeting -> {
+                MeetingDTO dto = meetingMapper.toDto(meeting);
+                if (dto.getStatus() == MeetingStatus.REJECTED) {
+                    meetingRepository
+                        .findRejectionReasonByMeetingId(dto.getId(), ApprovalDecision.REJECTED)
+                        .ifPresent(dto::setRejectionReason);
+                }
+                return dto;
+            });
     }
 
     /**

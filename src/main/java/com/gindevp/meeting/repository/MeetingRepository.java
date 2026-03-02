@@ -1,6 +1,7 @@
 package com.gindevp.meeting.repository;
 
 import com.gindevp.meeting.domain.Meeting;
+import com.gindevp.meeting.domain.enumeration.ApprovalDecision;
 import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import java.time.Instant;
 import java.util.Collection;
@@ -86,4 +87,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         @Param("activeStatuses") Collection<MeetingStatus> activeStatuses,
         @Param("excludeMeetingId") Long excludeMeetingId
     );
+
+    @Query("select ma.reason from MeetingApproval ma where ma.meeting.id = :meetingId and ma.decision = :decision")
+    Optional<String> findRejectionReasonByMeetingId(@Param("meetingId") Long meetingId, @Param("decision") ApprovalDecision decision);
 }

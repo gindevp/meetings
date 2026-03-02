@@ -67,6 +67,8 @@ public class MeetingDTO implements Serializable {
     @NotNull
     private UserDTO host;
 
+    private String rejectionReason;
+
     public Long getId() {
         return id;
     }
@@ -227,6 +229,14 @@ public class MeetingDTO implements Serializable {
         this.host = host;
     }
 
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -272,6 +282,7 @@ public class MeetingDTO implements Serializable {
             ", room=" + getRoom() +
             ", requester=" + getRequester() +
             ", host=" + getHost() +
+            ", rejectionReason='" + getRejectionReason() + "'" +
             "}";
     }
 }
