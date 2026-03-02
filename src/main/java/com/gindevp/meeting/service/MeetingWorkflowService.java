@@ -159,6 +159,15 @@ public class MeetingWorkflowService {
         return meetingMapper.toDto(meetingRepository.save(meeting));
     }
 
+    public MeetingDTO complete(Long meetingId) {
+        Meeting meeting = getMeeting(meetingId);
+        if (meeting.getStatus() != MeetingStatus.APPROVED) {
+            throw new BadRequestAlertException("Only APPROVED meetings can be completed", "meeting", "invalidState");
+        }
+        meeting.setStatus(MeetingStatus.COMPLETED);
+        return meetingMapper.toDto(meetingRepository.save(meeting));
+    }
+
     private int resolvePendingStep(Meeting meeting) {
         Long id = meeting.getId();
         Instant cycleFrom = meeting.getSubmittedAt();

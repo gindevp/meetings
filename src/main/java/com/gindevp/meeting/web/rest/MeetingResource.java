@@ -237,6 +237,11 @@ public class MeetingResource {
         return ResponseEntity.ok(meetingWorkflowService.cancel(id));
     }
 
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<MeetingDTO> complete(@PathVariable Long id) {
+        return ResponseEntity.ok(meetingWorkflowService.complete(id));
+    }
+
     private User currentUser() {
         String login = SecurityUtils.getCurrentUserLogin().orElseThrow(() -> new RuntimeException("No current user"));
         return userRepository.findOneByLogin(login).orElseThrow(() -> new RuntimeException("User not found: " + login));
