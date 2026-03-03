@@ -40,11 +40,6 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
     @Column(name = "password_hash", length = 60, nullable = false)
     private String password;
 
-    // Temporary field for sending password in email (not persisted)
-    @JsonIgnore
-    @Transient
-    private String rawPassword;
-
     @Size(max = 50)
     @Column(name = "first_name", length = 50)
     private String firstName;
@@ -120,14 +115,6 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public String getRawPassword() {
-        return rawPassword;
-    }
-
-    public void setRawPassword(String rawPassword) {
-        this.rawPassword = rawPassword;
     }
 
     public String getFirstName() {

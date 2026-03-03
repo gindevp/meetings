@@ -117,12 +117,11 @@ public class UserResource {
         } else if (userRepository.findOneByEmailIgnoreCase(userDTO.getEmail()).isPresent()) {
             throw new EmailAlreadyUsedException();
         } else {
-            var result = userService.createUserWithPassword(userDTO);
-            // Send password reset email so user can set their own password
-            mailService.sendPasswordResetMail(result.user());
-            return ResponseEntity.created(new URI("/api/admin/users/" + result.user().getLogin()))
-                .headers(HeaderUtil.createAlert(applicationName, "userManagement.created", result.user().getLogin()))
-                .body(result.user());
+            User newUser = userService.createUser(userDTO);
+            mailService.sendCreationEmail(newUser);
+            return ResponseEntity.created(new URI("/api/admin/users/" + newUser.getLogin()))
+                .headers(HeaderUtil.createAlert(applicationName, "userManagement.created", newUser.getLogin()))
+                .body(newUser);
         }
     }
 
