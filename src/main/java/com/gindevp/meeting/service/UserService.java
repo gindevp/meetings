@@ -155,11 +155,15 @@ public class UserService {
         } else {
             user.setLangKey(userDTO.getLangKey());
         }
-        String encryptedPassword = passwordEncoder.encode(RandomUtil.generatePassword());
+
+        // Generate raw password to send in email
+        String rawPassword = RandomUtil.generatePassword();
+        String encryptedPassword = passwordEncoder.encode(rawPassword);
         user.setPassword(encryptedPassword);
         user.setResetKey(RandomUtil.generateResetKey());
         user.setResetDate(Instant.now());
         user.setActivated(true);
+
         if (userDTO.getAuthorities() != null) {
             Set<Authority> authorities = userDTO
                 .getAuthorities()
@@ -177,8 +181,61 @@ public class UserService {
         }
 
         userRepository.save(user);
+
+        // Store raw password in user entity for email (using a setter we'll create)
+        // Actually, we need to update the user with raw password after save for email
+        user.setRawPassword(rawPassword);
+
         LOG.debug("Created Information for User: {}", user);
         return user;
+    }
+
+    /**
+     * Create user and return raw password (for sending in email)
+     */
+    public record CreatedUserWithPassword(User user, String rawPassword) {}
+
+    public CreatedUserWithPassword createUserWithPassword(AdminUserDTO userDTO) {
+        String rawPassword = RandomUtil.generatePassword();
+
+        User user = new User();
+        user.setLogin(userDTO.getLogin().toLowerCase());
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        if (userDTO.getEmail() != null) {
+            user.setEmail(userDTO.getEmail().toLowerCase());
+        }
+        user.setImageUrl(userDTO.getImageUrl());
+        if (userDTO.getLangKey() == null) {
+            user.setLangKey(Constants.DEFAULT_LANGUAGE);
+        } else {
+            user.setLangKey(userDTO.getLangKey());
+        }
+
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setResetKey(RandomUtil.generateResetKey());
+        user.setResetDate(Instant.now());
+        user.setActivated(true);
+
+        if (userDTO.getAuthorities() != null) {
+            Set<Authority> authorities = userDTO
+                .getAuthorities()
+                .stream()
+                .map(authorityRepository::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+            user.setAuthorities(authorities);
+        }
+
+        if (userDTO.getDepartmentId() != null) {
+            departmentRepository.findById(userDTO.getDepartmentId()).ifPresent(user::setDepartment);
+        }
+
+        userRepository.save(user);
+        LOG.debug("Created Information for User: {}", user);
+
+        return new CreatedUserWithPassword(user, rawPassword);
     }
 
     /**

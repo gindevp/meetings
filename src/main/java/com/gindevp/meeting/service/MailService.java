@@ -113,6 +113,32 @@ public class MailService {
     }
 
     @Async
+    public void sendAccountCreatedEmail(User user, String rawPassword) {
+        LOG.debug("Sending account created email to '{}'", user.getEmail());
+        if (user.getEmail() == null) {
+            LOG.debug("Email doesn't exist for user '{}'", user.getLogin());
+            return;
+        }
+
+        String subject = "Tài khoản đã được tạo";
+        String content = String.format(
+            "<h2>Xin chào %s,</h2>" +
+            "<p>Tài khoản của bạn đã được tạo thành công.</p>" +
+            "<p><strong>Thông tin đăng nhập:</strong></p>" +
+            "<ul>" +
+            "<li>Username: <strong>%s</strong></li>" +
+            "<li>Password: <strong>%s</strong></li>" +
+            "</ul>" +
+            "<p>Vui lòng đăng nhập và đổi mật khẩu ngay lần đầu.</p>",
+            user.getFirstName() != null ? user.getFirstName() : user.getLogin(),
+            user.getLogin(),
+            rawPassword
+        );
+
+        sendEmailSync(user.getEmail(), subject, content, false, true);
+    }
+
+    @Async
     public void sendPasswordResetMail(User user) {
         LOG.debug("Sending password reset email to '{}'", user.getEmail());
         sendEmailFromTemplateSync(user, "mail/passwordResetEmail", "email.reset.title");
