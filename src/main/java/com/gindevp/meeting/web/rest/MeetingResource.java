@@ -4,14 +4,19 @@ import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.repository.MeetingRepository;
 import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.security.SecurityUtils;
+import com.gindevp.meeting.service.AgendaItemService;
+import com.gindevp.meeting.service.MeetingParticipantService;
 import com.gindevp.meeting.service.MeetingService;
 import com.gindevp.meeting.service.MeetingWorkflowService;
+import com.gindevp.meeting.service.dto.AgendaItemDTO;
 import com.gindevp.meeting.service.dto.MeetingDTO;
+import com.gindevp.meeting.service.dto.MeetingParticipantDTO;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,16 +56,24 @@ public class MeetingResource {
 
     private final MeetingWorkflowService meetingWorkflowService;
 
+    private final MeetingParticipantService meetingParticipantService;
+
+    private final AgendaItemService agendaItemService;
+
     public MeetingResource(
         MeetingService meetingService,
         UserRepository userRepository,
         MeetingRepository meetingRepository,
-        MeetingWorkflowService meetingWorkflowService
+        MeetingWorkflowService meetingWorkflowService,
+        MeetingParticipantService meetingParticipantService,
+        AgendaItemService agendaItemService
     ) {
         this.meetingService = meetingService;
         this.userRepository = userRepository;
         this.meetingRepository = meetingRepository;
         this.meetingWorkflowService = meetingWorkflowService;
+        this.meetingParticipantService = meetingParticipantService;
+        this.agendaItemService = agendaItemService;
     }
 
     /**
@@ -79,6 +92,66 @@ public class MeetingResource {
         meetingDTO = meetingService.save(meetingDTO);
         return ResponseEntity.created(new URI("/api/meetings/" + meetingDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, meetingDTO.getId().toString()))
+            .body(meetingDTO);
+    }
+
+    // DTO for creating meeting with participants and agenda
+    public record CreateMeetingRequest(MeetingDTO meeting, List<ParticipantRequest> participants, List<AgendaRequest> agendaItems) {}
+
+    public record ParticipantRequest(Long userId, String role, Boolean isRequired) {}
+
+    public record AgendaRequest(String topic, String presenterName, Integer durationMinutes, Integer itemOrder) {}
+
+    /**
+     * {@code POST  /meetings/with-details} : Create a new meeting with participants and agenda.
+     */
+    @PostMapping("/with-details")
+    public ResponseEntity<MeetingDTO> createMeetingWithDetails(@RequestBody CreateMeetingRequest request) throws URISyntaxException {
+        LOG.debug("REST request to save Meeting with participants and agenda");
+
+        // Save meeting first
+        MeetingDTO meetingDTO = request.meeting();
+        if (meetingDTO.getId() != null) {
+            throw new BadRequestAlertException("A new meeting cannot already have an ID", ENTITY_NAME, "idexists");
+        }
+        meetingDTO = meetingService.save(meetingDTO);
+        Long meetingId = meetingDTO.getId();
+
+        // Save participants
+        if (request.participants() != null) {
+            for (ParticipantRequest p : request.participants()) {
+                MeetingParticipantDTO participantDTO = new MeetingParticipantDTO();
+                participantDTO.setRole(com.gindevp.meeting.domain.enumeration.ParticipantRole.ATTENDEE);
+                participantDTO.setIsRequired(p.isRequired() != null ? p.isRequired() : true);
+                participantDTO.setAttendance(com.gindevp.meeting.domain.enumeration.AttendanceStatus.NOT_MARKED);
+
+                com.gindevp.meeting.service.dto.UserDTO userDTO = new com.gindevp.meeting.service.dto.UserDTO();
+                userDTO.setId(p.userId());
+                participantDTO.setUser(userDTO);
+
+                participantDTO.setMeeting(meetingDTO);
+                meetingParticipantService.save(participantDTO);
+            }
+        }
+
+        // Save agenda items
+        if (request.agendaItems() != null) {
+            for (AgendaRequest a : request.agendaItems()) {
+                AgendaItemDTO agendaDTO = new AgendaItemDTO();
+                agendaDTO.setTopic(a.topic());
+                agendaDTO.setPresenterName(a.presenterName());
+                agendaDTO.setDurationMinutes(a.durationMinutes());
+                agendaDTO.setItemOrder(a.itemOrder());
+                agendaDTO.setMeeting(meetingDTO);
+                agendaItemService.save(agendaDTO);
+            }
+        }
+
+        // Reload meeting with relationships
+        meetingDTO = meetingService.findOne(meetingId).orElse(meetingDTO);
+
+        return ResponseEntity.created(new URI("/api/meetings/" + meetingId))
+            .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, meetingId.toString()))
             .body(meetingDTO);
     }
 

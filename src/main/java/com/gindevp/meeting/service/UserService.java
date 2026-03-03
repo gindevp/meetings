@@ -2,8 +2,10 @@ package com.gindevp.meeting.service;
 
 import com.gindevp.meeting.config.Constants;
 import com.gindevp.meeting.domain.Authority;
+import com.gindevp.meeting.domain.Department;
 import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.repository.AuthorityRepository;
+import com.gindevp.meeting.repository.DepartmentRepository;
 import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.security.AuthoritiesConstants;
 import com.gindevp.meeting.security.SecurityUtils;
@@ -38,10 +40,18 @@ public class UserService {
 
     private final AuthorityRepository authorityRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository) {
+    private final DepartmentRepository departmentRepository;
+
+    public UserService(
+        UserRepository userRepository,
+        PasswordEncoder passwordEncoder,
+        AuthorityRepository authorityRepository,
+        DepartmentRepository departmentRepository
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authorityRepository = authorityRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     public Optional<User> activateRegistration(String key) {
@@ -160,6 +170,12 @@ public class UserService {
                 .collect(Collectors.toSet());
             user.setAuthorities(authorities);
         }
+
+        // Set department if departmentId is provided
+        if (userDTO.getDepartmentId() != null) {
+            departmentRepository.findById(userDTO.getDepartmentId()).ifPresent(user::setDepartment);
+        }
+
         userRepository.save(user);
         LOG.debug("Created Information for User: {}", user);
         return user;
@@ -194,6 +210,14 @@ public class UserService {
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .forEach(managedAuthorities::add);
+
+                // Update department if departmentId is provided
+                if (userDTO.getDepartmentId() != null) {
+                    departmentRepository.findById(userDTO.getDepartmentId()).ifPresent(user::setDepartment);
+                } else {
+                    user.setDepartment(null);
+                }
+
                 userRepository.save(user);
                 LOG.debug("Changed Information for User: {}", user);
                 return user;
@@ -258,6 +282,11 @@ public class UserService {
     @Transactional(readOnly = true)
     public Page<UserDTO> getAllPublicUsers(Pageable pageable) {
         return userRepository.findAllByIdNotNullAndActivatedIsTrue(pageable).map(UserDTO::new);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserDTO> getUsersByDepartment(Long departmentId) {
+        return userRepository.findByDepartmentIdAndActivatedTrue(departmentId).stream().map(UserDTO::new).toList();
     }
 
     @Transactional(readOnly = true)

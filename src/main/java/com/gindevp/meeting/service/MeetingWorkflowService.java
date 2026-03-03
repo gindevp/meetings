@@ -42,44 +42,44 @@ public class MeetingWorkflowService {
         if (!(meeting.getStatus() == MeetingStatus.DRAFT || meeting.getStatus() == MeetingStatus.REJECTED)) {
             throw new BadRequestAlertException("Only DRAFT/REJECTED can be submitted", "meeting", "invalidState");
         }
-        meetingValidationService.validateBeforeSubmit(meeting); // Nếu ONLINE và không cần unit approval => có thể auto approve (tuỳ bạn) // Ở đây mình theo đặc tả: gửi duyệt => chuyển PENDING
-        meeting.setStatus(MeetingStatus.PENDING_APPROVAL);
-        meeting.setSubmittedAt(Instant.now());
+        meetingValidationService.validateBeforeSubmit(meeting);
+
+        // Cấp Tổng công ty: tự động phê duyệt
+        if (requiresUnitApproval(meeting)) {
+            meeting.setStatus(MeetingStatus.APPROVED);
+            meeting.setApprovedAt(Instant.now());
+            meeting.setSubmittedAt(Instant.now());
+        } else {
+            // Cấp Phòng ban: cần phê duyệt từ ROOM_MANAGER
+            meeting.setStatus(MeetingStatus.PENDING_APPROVAL);
+            meeting.setSubmittedAt(Instant.now());
+        }
+
         return meetingMapper.toDto(meetingRepository.save(meeting));
     }
 
     public MeetingDTO approveRoom(Long meetingId, User approver) {
         Meeting meeting = getMeeting(meetingId);
-        Instant cycleFrom = meeting.getSubmittedAt();
         if (meeting.getStatus() != MeetingStatus.PENDING_APPROVAL) {
             throw new BadRequestAlertException("Meeting not pending approval", "meeting", "invalidState");
         }
-        //        if (!requiresRoomApproval(meeting)) {
-        //            throw new BadRequestAlertException("Room approval is not required for this meeting", "meeting", "roomApprovalNotRequired");
-        //        }
-        if (
-            meetingApprovalRepository.existsByMeetingIdAndStepAndDecisionAndDecidedAtGreaterThanEqual(
-                meetingId,
-                1,
-                ApprovalDecision.APPROVED,
-                cycleFrom
-            )
-        ) {
-            throw new BadRequestAlertException("Room already approved", "meeting", "alreadyApproved");
-        } // re-check conflict trước khi approve
+
         meetingValidationService.validateBeforeSubmit(meeting);
+
+        // Log approval
         MeetingApproval log = new MeetingApproval();
         log.setMeeting(meeting);
         log.setStep(1);
         log.setDecision(ApprovalDecision.APPROVED);
         log.setDecidedAt(Instant.now());
         log.setDecidedBy(approver);
-        meetingApprovalRepository.save(log); // Nếu không cần unit approval => Approved luôn
-        if (!requiresUnitApproval(meeting)) {
-            meeting.setStatus(MeetingStatus.APPROVED);
-            meeting.setApprovedAt(Instant.now());
-            meetingRepository.save(meeting);
-        }
+        meetingApprovalRepository.save(log);
+
+        // Update meeting status to APPROVED
+        meeting.setStatus(MeetingStatus.APPROVED);
+        meeting.setApprovedAt(Instant.now());
+        meetingRepository.save(meeting);
+
         return meetingMapper.toDto(meeting);
     }
 

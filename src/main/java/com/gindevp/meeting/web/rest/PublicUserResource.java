@@ -52,4 +52,14 @@ public class PublicUserResource {
     private boolean onlyContainsAllowedProperties(Pageable pageable) {
         return pageable.getSort().stream().map(Sort.Order::getProperty).allMatch(ALLOWED_ORDERED_PROPERTIES::contains);
     }
+
+    /**
+     * {@code GET /users/department/:departmentId} : get all users by department.
+     */
+    @GetMapping("/users/department/{departmentId}")
+    public ResponseEntity<List<UserDTO>> getUsersByDepartment(@PathVariable Long departmentId) {
+        LOG.debug("REST request to get all users by department: {}", departmentId);
+        List<UserDTO> users = userService.getUsersByDepartment(departmentId);
+        return ResponseEntity.ok(users);
+    }
 }
