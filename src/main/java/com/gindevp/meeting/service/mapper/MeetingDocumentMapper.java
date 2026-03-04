@@ -2,9 +2,11 @@ package com.gindevp.meeting.service.mapper;
 
 import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.MeetingDocument;
+import com.gindevp.meeting.domain.MeetingTask;
 import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.service.dto.MeetingDTO;
 import com.gindevp.meeting.service.dto.MeetingDocumentDTO;
+import com.gindevp.meeting.service.dto.MeetingTaskDTO;
 import com.gindevp.meeting.service.dto.UserDTO;
 import org.mapstruct.*;
 
@@ -15,6 +17,7 @@ import org.mapstruct.*;
 public interface MeetingDocumentMapper extends EntityMapper<MeetingDocumentDTO, MeetingDocument> {
     @Mapping(target = "uploadedBy", source = "uploadedBy", qualifiedByName = "userLogin")
     @Mapping(target = "meeting", source = "meeting", qualifiedByName = "meetingId")
+    @Mapping(target = "task", source = "task", qualifiedByName = "meetingTaskId")
     MeetingDocumentDTO toDto(MeetingDocument s);
 
     @Named("userLogin")
@@ -27,4 +30,9 @@ public interface MeetingDocumentMapper extends EntityMapper<MeetingDocumentDTO, 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
     MeetingDTO toDtoMeetingId(Meeting meeting);
+
+    @Named("meetingTaskId")
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "id", source = "id")
+    MeetingTaskDTO toDtoMeetingTaskId(MeetingTask task);
 }

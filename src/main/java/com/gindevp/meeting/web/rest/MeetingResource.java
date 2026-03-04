@@ -1,23 +1,32 @@
 package com.gindevp.meeting.web.rest;
 
 import com.gindevp.meeting.domain.User;
+import com.gindevp.meeting.domain.enumeration.TaskStatus;
+import com.gindevp.meeting.domain.enumeration.TaskType;
 import com.gindevp.meeting.repository.MeetingRepository;
 import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.security.SecurityUtils;
 import com.gindevp.meeting.service.AgendaItemService;
+import com.gindevp.meeting.service.MeetingDocumentService;
 import com.gindevp.meeting.service.MeetingParticipantService;
 import com.gindevp.meeting.service.MeetingService;
+import com.gindevp.meeting.service.MeetingTaskService;
 import com.gindevp.meeting.service.MeetingWorkflowService;
 import com.gindevp.meeting.service.dto.AgendaItemDTO;
 import com.gindevp.meeting.service.dto.MeetingDTO;
+import com.gindevp.meeting.service.dto.MeetingDocumentDTO;
 import com.gindevp.meeting.service.dto.MeetingParticipantDTO;
+import com.gindevp.meeting.service.dto.MeetingTaskDTO;
+import com.gindevp.meeting.service.dto.UserDTO;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -28,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
@@ -60,13 +70,19 @@ public class MeetingResource {
 
     private final AgendaItemService agendaItemService;
 
+    private final MeetingTaskService meetingTaskService;
+
+    private final MeetingDocumentService meetingDocumentService;
+
     public MeetingResource(
         MeetingService meetingService,
         UserRepository userRepository,
         MeetingRepository meetingRepository,
         MeetingWorkflowService meetingWorkflowService,
         MeetingParticipantService meetingParticipantService,
-        AgendaItemService agendaItemService
+        AgendaItemService agendaItemService,
+        MeetingTaskService meetingTaskService,
+        MeetingDocumentService meetingDocumentService
     ) {
         this.meetingService = meetingService;
         this.userRepository = userRepository;
@@ -74,15 +90,10 @@ public class MeetingResource {
         this.meetingWorkflowService = meetingWorkflowService;
         this.meetingParticipantService = meetingParticipantService;
         this.agendaItemService = agendaItemService;
+        this.meetingTaskService = meetingTaskService;
+        this.meetingDocumentService = meetingDocumentService;
     }
 
-    /**
-     * {@code POST  /meetings} : Create a new meeting.
-     *
-     * @param meetingDTO the meetingDTO to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new meetingDTO, or with status {@code 400 (Bad Request)} if the meeting has already an ID.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
     @PostMapping("")
     public ResponseEntity<MeetingDTO> createMeeting(@Valid @RequestBody MeetingDTO meetingDTO) throws URISyntaxException {
         LOG.debug("REST request to save Meeting : {}", meetingDTO);
@@ -95,21 +106,48 @@ public class MeetingResource {
             .body(meetingDTO);
     }
 
-    // DTO for creating meeting with participants and agenda
-    public record CreateMeetingRequest(MeetingDTO meeting, List<ParticipantRequest> participants, List<AgendaRequest> agendaItems) {}
+    public record CreateMeetingRequest(
+        MeetingDTO meeting,
+        List<ParticipantRequest> participants,
+        List<AgendaRequest> agendaItems,
+        List<TaskRequest> tasks,
+        List<DocumentRequest> documents,
+        Boolean submitAfterCreate
+    ) {}
 
     public record ParticipantRequest(Long userId, String role, Boolean isRequired) {}
 
     public record AgendaRequest(String topic, String presenterName, Integer durationMinutes, Integer itemOrder) {}
 
-    /**
-     * {@code POST  /meetings/with-details} : Create a new meeting with participants and agenda.
-     */
-    @PostMapping("/with-details")
-    public ResponseEntity<MeetingDTO> createMeetingWithDetails(@RequestBody CreateMeetingRequest request) throws URISyntaxException {
-        LOG.debug("REST request to save Meeting with participants and agenda");
+    public record TaskRequest(
+        String clientKey,
+        String type,
+        String title,
+        String description,
+        Instant dueAt,
+        String status,
+        Integer remindBeforeMinutes,
+        Long assigneeId,
+        Long assignedById
+    ) {}
 
-        // Save meeting first
+    public record DocumentRequest(
+        String docType,
+        String fileName,
+        String contentType,
+        byte[] file,
+        String fileContentType,
+        Instant uploadedAt,
+        Long uploadedById,
+        Long taskId,
+        String taskClientKey
+    ) {}
+
+    @PostMapping("/with-details")
+    @Transactional
+    public ResponseEntity<MeetingDTO> createMeetingWithDetails(@RequestBody CreateMeetingRequest request) throws URISyntaxException {
+        LOG.debug("REST request to save Meeting with participants, agenda, tasks and documents");
+
         MeetingDTO meetingDTO = request.meeting();
         if (meetingDTO.getId() != null) {
             throw new BadRequestAlertException("A new meeting cannot already have an ID", ENTITY_NAME, "idexists");
@@ -117,7 +155,6 @@ public class MeetingResource {
         meetingDTO = meetingService.save(meetingDTO);
         Long meetingId = meetingDTO.getId();
 
-        // Save participants
         if (request.participants() != null) {
             for (ParticipantRequest p : request.participants()) {
                 MeetingParticipantDTO participantDTO = new MeetingParticipantDTO();
@@ -125,7 +162,7 @@ public class MeetingResource {
                 participantDTO.setIsRequired(p.isRequired() != null ? p.isRequired() : true);
                 participantDTO.setAttendance(com.gindevp.meeting.domain.enumeration.AttendanceStatus.NOT_MARKED);
 
-                com.gindevp.meeting.service.dto.UserDTO userDTO = new com.gindevp.meeting.service.dto.UserDTO();
+                UserDTO userDTO = new UserDTO();
                 userDTO.setId(p.userId());
                 participantDTO.setUser(userDTO);
 
@@ -134,7 +171,6 @@ public class MeetingResource {
             }
         }
 
-        // Save agenda items
         if (request.agendaItems() != null) {
             for (AgendaRequest a : request.agendaItems()) {
                 AgendaItemDTO agendaDTO = new AgendaItemDTO();
@@ -147,24 +183,88 @@ public class MeetingResource {
             }
         }
 
-        // Reload meeting with relationships
-        meetingDTO = meetingService.findOne(meetingId).orElse(meetingDTO);
+        Map<String, Long> taskClientKeyToId = new HashMap<>();
+        if (request.tasks() != null) {
+            for (TaskRequest t : request.tasks()) {
+                MeetingTaskDTO taskDTO = new MeetingTaskDTO();
+                taskDTO.setType(t.type() != null ? TaskType.valueOf(t.type()) : TaskType.PRE_MEETING);
+                taskDTO.setTitle(t.title());
+                taskDTO.setDescription(t.description());
+                taskDTO.setDueAt(t.dueAt());
+                taskDTO.setStatus(t.status() != null ? TaskStatus.valueOf(t.status()) : TaskStatus.TODO);
+                taskDTO.setRemindBeforeMinutes(t.remindBeforeMinutes());
+                taskDTO.setMeeting(meetingDTO);
+
+                if (t.assigneeId() != null) {
+                    UserDTO assignee = new UserDTO();
+                    assignee.setId(t.assigneeId());
+                    taskDTO.setAssignee(assignee);
+                }
+
+                Long assignedById = t.assignedById();
+                if (assignedById == null) {
+                    assignedById = meetingDTO.getRequester() != null ? meetingDTO.getRequester().getId() : null;
+                }
+                if (assignedById != null) {
+                    UserDTO assignedBy = new UserDTO();
+                    assignedBy.setId(assignedById);
+                    taskDTO.setAssignedBy(assignedBy);
+                }
+
+                MeetingTaskDTO savedTask = meetingTaskService.save(taskDTO);
+                if (t.clientKey() != null && !t.clientKey().isBlank()) {
+                    taskClientKeyToId.put(t.clientKey(), savedTask.getId());
+                }
+            }
+        }
+
+        if (request.documents() != null) {
+            for (DocumentRequest d : request.documents()) {
+                MeetingDocumentDTO docDTO = new MeetingDocumentDTO();
+                docDTO.setDocType(d.docType());
+                docDTO.setFileName(d.fileName());
+                docDTO.setContentType(d.contentType());
+                docDTO.setFile(d.file());
+                docDTO.setFileContentType(d.fileContentType());
+                docDTO.setUploadedAt(d.uploadedAt() != null ? d.uploadedAt() : Instant.now());
+                docDTO.setMeeting(meetingDTO);
+
+                Long uploadedById = d.uploadedById();
+                if (uploadedById == null) {
+                    uploadedById = meetingDTO.getRequester() != null ? meetingDTO.getRequester().getId() : null;
+                }
+                if (uploadedById == null) {
+                    throw new BadRequestAlertException("uploadedById is required", ENTITY_NAME, "uploadedbyrequired");
+                }
+                UserDTO uploadedBy = new UserDTO();
+                uploadedBy.setId(uploadedById);
+                docDTO.setUploadedBy(uploadedBy);
+
+                Long resolvedTaskId = d.taskId();
+                if (resolvedTaskId == null && d.taskClientKey() != null) {
+                    resolvedTaskId = taskClientKeyToId.get(d.taskClientKey());
+                }
+                if (resolvedTaskId != null) {
+                    MeetingTaskDTO taskRef = new MeetingTaskDTO();
+                    taskRef.setId(resolvedTaskId);
+                    docDTO.setTask(taskRef);
+                }
+
+                meetingDocumentService.save(docDTO);
+            }
+        }
+
+        if (Boolean.TRUE.equals(request.submitAfterCreate())) {
+            meetingDTO = meetingWorkflowService.submit(meetingId);
+        } else {
+            meetingDTO = meetingService.findOne(meetingId).orElse(meetingDTO);
+        }
 
         return ResponseEntity.created(new URI("/api/meetings/" + meetingId))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, meetingId.toString()))
             .body(meetingDTO);
     }
 
-    /**
-     * {@code PUT  /meetings/:id} : Updates an existing meeting.
-     *
-     * @param id the id of the meetingDTO to save.
-     * @param meetingDTO the meetingDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated meetingDTO,
-     * or with status {@code 400 (Bad Request)} if the meetingDTO is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the meetingDTO couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
     @PutMapping("/{id}")
     public ResponseEntity<MeetingDTO> updateMeeting(
         @PathVariable(value = "id", required = false) final Long id,
@@ -188,17 +288,6 @@ public class MeetingResource {
             .body(meetingDTO);
     }
 
-    /**
-     * {@code PATCH  /meetings/:id} : Partial updates given fields of an existing meeting, field will ignore if it is null
-     *
-     * @param id the id of the meetingDTO to save.
-     * @param meetingDTO the meetingDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated meetingDTO,
-     * or with status {@code 400 (Bad Request)} if the meetingDTO is not valid,
-     * or with status {@code 404 (Not Found)} if the meetingDTO is not found,
-     * or with status {@code 500 (Internal Server Error)} if the meetingDTO couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
     @PatchMapping(value = "/{id}", consumes = { "application/json", "application/merge-patch+json" })
     public ResponseEntity<MeetingDTO> partialUpdateMeeting(
         @PathVariable(value = "id", required = false) final Long id,
@@ -224,13 +313,6 @@ public class MeetingResource {
         );
     }
 
-    /**
-     * {@code GET  /meetings} : get all the meetings.
-     *
-     * @param pageable the pagination information.
-     * @param eagerload flag to eager load entities from relationships (This is applicable for many-to-many).
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of meetings in body.
-     */
     @GetMapping("")
     public ResponseEntity<List<MeetingDTO>> getAllMeetings(
         @org.springdoc.core.annotations.ParameterObject Pageable pageable,
@@ -247,12 +329,6 @@ public class MeetingResource {
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
 
-    /**
-     * {@code GET  /meetings/:id} : get the "id" meeting.
-     *
-     * @param id the id of the meetingDTO to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the meetingDTO, or with status {@code 404 (Not Found)}.
-     */
     @GetMapping("/{id}")
     public ResponseEntity<MeetingDTO> getMeeting(@PathVariable("id") Long id) {
         LOG.debug("REST request to get Meeting : {}", id);
@@ -260,12 +336,6 @@ public class MeetingResource {
         return ResponseUtil.wrapOrNotFound(meetingDTO);
     }
 
-    /**
-     * {@code DELETE  /meetings/:id} : delete the "id" meeting.
-     *
-     * @param id the id of the meetingDTO to delete.
-     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMeeting(@PathVariable("id") Long id) {
         LOG.debug("REST request to delete Meeting : {}", id);

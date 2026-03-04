@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="202603040001-1" author="cursor">
+        <addColumn tableName="meeting_document">
+            <column name="task_id" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202603040001-2" author="cursor">
+        <addForeignKeyConstraint baseColumnNames="task_id"
+                                 baseTableName="meeting_document"
+                                 constraintName="fk_meeting_document__task_id"
+                                 referencedColumnNames="id"
+                                 referencedTableName="meeting_task"/>
+    </changeSet>
+</databaseChangeLog>

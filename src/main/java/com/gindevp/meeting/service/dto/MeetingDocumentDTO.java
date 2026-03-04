@@ -36,6 +36,8 @@ public class MeetingDocumentDTO implements Serializable {
     @NotNull
     private MeetingDTO meeting;
 
+    private MeetingTaskDTO task;
+
     public Long getId() {
         return id;
     }
@@ -108,6 +110,14 @@ public class MeetingDocumentDTO implements Serializable {
         this.meeting = meeting;
     }
 
+    public MeetingTaskDTO getTask() {
+        return task;
+    }
+
+    public void setTask(MeetingTaskDTO task) {
+        this.task = task;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -141,6 +151,7 @@ public class MeetingDocumentDTO implements Serializable {
             ", uploadedAt='" + getUploadedAt() + "'" +
             ", uploadedBy=" + getUploadedBy() +
             ", meeting=" + getMeeting() +
+            ", task=" + getTask() +
             "}";
     }
 }

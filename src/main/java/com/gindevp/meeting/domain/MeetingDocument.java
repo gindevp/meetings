@@ -68,6 +68,10 @@ public class MeetingDocument implements Serializable {
     )
     private Meeting meeting;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties(value = { "meeting", "assignee", "assignedBy" }, allowSetters = true)
+    private MeetingTask task;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -184,6 +188,19 @@ public class MeetingDocument implements Serializable {
 
     public MeetingDocument meeting(Meeting meeting) {
         this.setMeeting(meeting);
+        return this;
+    }
+
+    public MeetingTask getTask() {
+        return this.task;
+    }
+
+    public void setTask(MeetingTask meetingTask) {
+        this.task = meetingTask;
+    }
+
+    public MeetingDocument task(MeetingTask meetingTask) {
+        this.setTask(meetingTask);
         return this;
     }
 
