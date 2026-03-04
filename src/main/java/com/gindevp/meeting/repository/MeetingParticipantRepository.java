@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -44,4 +45,8 @@ public interface MeetingParticipantRepository extends JpaRepository<MeetingParti
         "select meetingParticipant from MeetingParticipant meetingParticipant left join fetch meetingParticipant.user where meetingParticipant.id =:id"
     )
     Optional<MeetingParticipant> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @Modifying
+    @Query("delete from MeetingParticipant mp where mp.meeting.id = :meetingId")
+    void deleteByMeetingId(@Param("meetingId") Long meetingId);
 }

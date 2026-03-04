@@ -3,7 +3,11 @@ package com.gindevp.meeting.web.rest;
 import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.domain.enumeration.TaskStatus;
 import com.gindevp.meeting.domain.enumeration.TaskType;
+import com.gindevp.meeting.repository.AgendaItemRepository;
+import com.gindevp.meeting.repository.MeetingDocumentRepository;
+import com.gindevp.meeting.repository.MeetingParticipantRepository;
 import com.gindevp.meeting.repository.MeetingRepository;
+import com.gindevp.meeting.repository.MeetingTaskRepository;
 import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.security.SecurityUtils;
 import com.gindevp.meeting.service.AgendaItemService;
@@ -74,6 +78,14 @@ public class MeetingResource {
 
     private final MeetingDocumentService meetingDocumentService;
 
+    private final MeetingParticipantRepository meetingParticipantRepository;
+
+    private final AgendaItemRepository agendaItemRepository;
+
+    private final MeetingTaskRepository meetingTaskRepository;
+
+    private final MeetingDocumentRepository meetingDocumentRepository;
+
     public MeetingResource(
         MeetingService meetingService,
         UserRepository userRepository,
@@ -82,7 +94,11 @@ public class MeetingResource {
         MeetingParticipantService meetingParticipantService,
         AgendaItemService agendaItemService,
         MeetingTaskService meetingTaskService,
-        MeetingDocumentService meetingDocumentService
+        MeetingDocumentService meetingDocumentService,
+        MeetingParticipantRepository meetingParticipantRepository,
+        AgendaItemRepository agendaItemRepository,
+        MeetingTaskRepository meetingTaskRepository,
+        MeetingDocumentRepository meetingDocumentRepository
     ) {
         this.meetingService = meetingService;
         this.userRepository = userRepository;
@@ -92,6 +108,10 @@ public class MeetingResource {
         this.agendaItemService = agendaItemService;
         this.meetingTaskService = meetingTaskService;
         this.meetingDocumentService = meetingDocumentService;
+        this.meetingParticipantRepository = meetingParticipantRepository;
+        this.agendaItemRepository = agendaItemRepository;
+        this.meetingTaskRepository = meetingTaskRepository;
+        this.meetingDocumentRepository = meetingDocumentRepository;
     }
 
     @PostMapping("")
@@ -155,8 +175,88 @@ public class MeetingResource {
         meetingDTO = meetingService.save(meetingDTO);
         Long meetingId = meetingDTO.getId();
 
-        if (request.participants() != null) {
-            for (ParticipantRequest p : request.participants()) {
+        saveDetails(meetingDTO, request.participants(), request.agendaItems(), request.tasks(), request.documents());
+
+        if (Boolean.TRUE.equals(request.submitAfterCreate())) {
+            meetingDTO = meetingWorkflowService.submit(meetingId);
+        } else {
+            meetingDTO = meetingService.findOne(meetingId).orElse(meetingDTO);
+        }
+
+        return ResponseEntity.created(new URI("/api/meetings/" + meetingId))
+            .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, meetingId.toString()))
+            .body(meetingDTO);
+    }
+
+    @PutMapping("/{id}/with-details")
+    @Transactional
+    public ResponseEntity<MeetingDTO> updateMeetingWithDetails(
+        @PathVariable(value = "id", required = false) final Long id,
+        @RequestBody CreateMeetingRequest request
+    ) throws URISyntaxException {
+        LOG.debug("REST request to update Meeting with participants, agenda, tasks and documents : {}", id);
+
+        MeetingDTO meetingDTO = request.meeting();
+        if (meetingDTO.getId() == null) {
+            throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
+        }
+        if (!Objects.equals(id, meetingDTO.getId())) {
+            throw new BadRequestAlertException("Invalid ID", ENTITY_NAME, "idinvalid");
+        }
+        if (!meetingRepository.existsById(id)) {
+            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+        }
+
+        MeetingDTO existingMeeting = meetingService
+            .findOne(id)
+            .orElseThrow(() -> new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound"));
+
+        if (meetingDTO.getStatus() == null) {
+            meetingDTO.setStatus(existingMeeting.getStatus());
+        }
+        if (meetingDTO.getCreatedAt() == null) {
+            meetingDTO.setCreatedAt(existingMeeting.getCreatedAt());
+        }
+        if (meetingDTO.getType() == null) {
+            meetingDTO.setType(existingMeeting.getType());
+        }
+        if (meetingDTO.getLevel() == null) {
+            meetingDTO.setLevel(existingMeeting.getLevel());
+        }
+        if (meetingDTO.getOrganizerDepartment() == null) {
+            meetingDTO.setOrganizerDepartment(existingMeeting.getOrganizerDepartment());
+        }
+        if (meetingDTO.getRequester() == null) {
+            meetingDTO.setRequester(existingMeeting.getRequester());
+        }
+        if (meetingDTO.getHost() == null) {
+            meetingDTO.setHost(existingMeeting.getHost());
+        }
+
+        meetingDTO = meetingService.update(meetingDTO);
+
+        meetingDocumentRepository.deleteByMeetingId(id);
+        meetingTaskRepository.deleteByMeetingId(id);
+        agendaItemRepository.deleteByMeetingId(id);
+        meetingParticipantRepository.deleteByMeetingId(id);
+
+        saveDetails(meetingDTO, request.participants(), request.agendaItems(), request.tasks(), request.documents());
+
+        meetingDTO = meetingService.findOne(id).orElse(meetingDTO);
+        return ResponseEntity.ok()
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, meetingDTO.getId().toString()))
+            .body(meetingDTO);
+    }
+
+    private void saveDetails(
+        MeetingDTO meetingDTO,
+        List<ParticipantRequest> participants,
+        List<AgendaRequest> agendaItems,
+        List<TaskRequest> tasks,
+        List<DocumentRequest> documents
+    ) {
+        if (participants != null) {
+            for (ParticipantRequest p : participants) {
                 MeetingParticipantDTO participantDTO = new MeetingParticipantDTO();
                 participantDTO.setRole(com.gindevp.meeting.domain.enumeration.ParticipantRole.ATTENDEE);
                 participantDTO.setIsRequired(p.isRequired() != null ? p.isRequired() : true);
@@ -171,8 +271,8 @@ public class MeetingResource {
             }
         }
 
-        if (request.agendaItems() != null) {
-            for (AgendaRequest a : request.agendaItems()) {
+        if (agendaItems != null) {
+            for (AgendaRequest a : agendaItems) {
                 AgendaItemDTO agendaDTO = new AgendaItemDTO();
                 agendaDTO.setTopic(a.topic());
                 agendaDTO.setPresenterName(a.presenterName());
@@ -184,8 +284,8 @@ public class MeetingResource {
         }
 
         Map<String, Long> taskClientKeyToId = new HashMap<>();
-        if (request.tasks() != null) {
-            for (TaskRequest t : request.tasks()) {
+        if (tasks != null) {
+            for (TaskRequest t : tasks) {
                 MeetingTaskDTO taskDTO = new MeetingTaskDTO();
                 taskDTO.setType(t.type() != null ? TaskType.valueOf(t.type()) : TaskType.PRE_MEETING);
                 taskDTO.setTitle(t.title());
@@ -218,8 +318,8 @@ public class MeetingResource {
             }
         }
 
-        if (request.documents() != null) {
-            for (DocumentRequest d : request.documents()) {
+        if (documents != null) {
+            for (DocumentRequest d : documents) {
                 MeetingDocumentDTO docDTO = new MeetingDocumentDTO();
                 docDTO.setDocType(d.docType());
                 docDTO.setFileName(d.fileName());
@@ -253,16 +353,6 @@ public class MeetingResource {
                 meetingDocumentService.save(docDTO);
             }
         }
-
-        if (Boolean.TRUE.equals(request.submitAfterCreate())) {
-            meetingDTO = meetingWorkflowService.submit(meetingId);
-        } else {
-            meetingDTO = meetingService.findOne(meetingId).orElse(meetingDTO);
-        }
-
-        return ResponseEntity.created(new URI("/api/meetings/" + meetingId))
-            .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, meetingId.toString()))
-            .body(meetingDTO);
     }
 
     @PutMapping("/{id}")
@@ -366,27 +456,33 @@ public class MeetingResource {
         return ResponseEntity.ok(meetingWorkflowService.approveUnit(id, approver));
     }
 
-    public record RejectRequest(String reason) {}
-
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyAuthority('ROLE_ROOM_MANAGER','ROLE_UNIT_MANAGER')")
-    public ResponseEntity<MeetingDTO> reject(@PathVariable Long id, @RequestBody RejectRequest req) {
+    @PreAuthorize("hasAuthority('ROLE_ROOM_MANAGER') or hasAuthority('ROLE_UNIT_MANAGER')")
+    public ResponseEntity<MeetingDTO> reject(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String reason = body.getOrDefault("reason", "");
         User approver = currentUser();
-        return ResponseEntity.ok(meetingWorkflowService.reject(id, req.reason(), approver));
+        return ResponseEntity.ok(meetingWorkflowService.reject(id, reason, approver));
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> cancel(@PathVariable Long id) {
-        return ResponseEntity.ok(meetingWorkflowService.cancel(id));
+        MeetingDTO dto = meetingWorkflowService.cancel(id);
+        return ResponseEntity.ok(dto);
     }
 
     @PostMapping("/{id}/complete")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> complete(@PathVariable Long id) {
-        return ResponseEntity.ok(meetingWorkflowService.complete(id));
+        MeetingDTO dto = meetingWorkflowService.complete(id);
+        return ResponseEntity.ok(dto);
     }
 
     private User currentUser() {
-        String login = SecurityUtils.getCurrentUserLogin().orElseThrow(() -> new RuntimeException("No current user"));
-        return userRepository.findOneByLogin(login).orElseThrow(() -> new RuntimeException("User not found: " + login));
+        String login = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
+        return userRepository
+            .findOneByLogin(login)
+            .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
     }
 }

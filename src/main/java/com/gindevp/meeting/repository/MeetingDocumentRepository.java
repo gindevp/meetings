@@ -42,4 +42,8 @@ public interface MeetingDocumentRepository extends JpaRepository<MeetingDocument
         "select meetingDocument from MeetingDocument meetingDocument left join fetch meetingDocument.uploadedBy where meetingDocument.id =:id"
     )
     Optional<MeetingDocument> findOneWithToOneRelationships(@Param("id") Long id);
+
+    @Modifying
+    @Query("delete from MeetingDocument md where md.meeting.id = :meetingId")
+    void deleteByMeetingId(@Param("meetingId") Long meetingId);
 }
