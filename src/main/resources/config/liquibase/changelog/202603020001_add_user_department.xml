@@ -10,7 +10,14 @@
                 <constraints nullable="true" foreignKeyName="fk_user_department" references="department(id)"/>
             </column>
         </addColumn>
-        
+
+        <!-- Ensure fallback department exists for legacy users -->
+        <sql>
+            INSERT INTO department (id, code, name, description)
+            SELECT 1, 'DEFAULT', 'Default Department', 'Auto-created by Liquibase migration'
+            WHERE NOT EXISTS (SELECT 1 FROM department WHERE id = 1);
+        </sql>
+
         <!-- Set default department_id = 1 for existing users -->
         <update tableName="jhi_user">
             <column name="department_id" valueNumeric="1"/>
