@@ -53,6 +53,9 @@ public class MeetingTask implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     private User assignedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Department department;
+
     @ManyToOne(optional = false)
     @NotNull
     @JsonIgnoreProperties(
@@ -190,6 +193,19 @@ public class MeetingTask implements Serializable {
 
     public MeetingTask assignedBy(User user) {
         this.setAssignedBy(user);
+        return this;
+    }
+
+    public Department getDepartment() {
+        return this.department;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
+
+    public MeetingTask department(Department department) {
+        this.setDepartment(department);
         return this;
     }
 

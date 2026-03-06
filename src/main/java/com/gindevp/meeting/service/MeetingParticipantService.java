@@ -12,8 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Service Implementation for managing {@link com.gindevp.meeting.domain.MeetingParticipant}.
@@ -44,6 +46,7 @@ public class MeetingParticipantService {
      */
     public MeetingParticipantDTO save(MeetingParticipantDTO meetingParticipantDTO) {
         LOG.debug("Request to save MeetingParticipant : {}", meetingParticipantDTO);
+        validateParticipantTarget(meetingParticipantDTO);
         MeetingParticipant meetingParticipant = meetingParticipantMapper.toEntity(meetingParticipantDTO);
         meetingParticipant = meetingParticipantRepository.save(meetingParticipant);
         return meetingParticipantMapper.toDto(meetingParticipant);
@@ -57,6 +60,7 @@ public class MeetingParticipantService {
      */
     public MeetingParticipantDTO update(MeetingParticipantDTO meetingParticipantDTO) {
         LOG.debug("Request to update MeetingParticipant : {}", meetingParticipantDTO);
+        validateParticipantTarget(meetingParticipantDTO);
         MeetingParticipant meetingParticipant = meetingParticipantMapper.toEntity(meetingParticipantDTO);
         meetingParticipant = meetingParticipantRepository.save(meetingParticipant);
         return meetingParticipantMapper.toDto(meetingParticipant);
@@ -126,5 +130,18 @@ public class MeetingParticipantService {
     public void delete(Long id) {
         LOG.debug("Request to delete MeetingParticipant : {}", id);
         meetingParticipantRepository.deleteById(id);
+    }
+
+    private void validateParticipantTarget(MeetingParticipantDTO dto) {
+        boolean hasUser = dto.getUser() != null && dto.getUser().getId() != null;
+        boolean hasDepartment = dto.getDepartment() != null && dto.getDepartment().getId() != null;
+
+        if (!hasUser && !hasDepartment) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant must have either user or department");
+        }
+
+        if (hasUser && hasDepartment) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant cannot have both user and department");
+        }
     }
 }

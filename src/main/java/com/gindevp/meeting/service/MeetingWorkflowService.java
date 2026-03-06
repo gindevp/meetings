@@ -8,10 +8,12 @@ import com.gindevp.meeting.domain.enumeration.MeetingLevel;
 import com.gindevp.meeting.domain.enumeration.MeetingMode;
 import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import com.gindevp.meeting.repository.MeetingApprovalRepository;
+import com.gindevp.meeting.repository.MeetingLevelRepository;
 import com.gindevp.meeting.repository.MeetingRepository;
 import com.gindevp.meeting.service.dto.MeetingDTO;
 import com.gindevp.meeting.service.mapper.MeetingMapper;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
+import java.text.Normalizer;
 import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,17 +24,20 @@ public class MeetingWorkflowService {
 
     private final MeetingRepository meetingRepository;
     private final MeetingApprovalRepository meetingApprovalRepository;
+    private final MeetingLevelRepository meetingLevelRepository;
     private final MeetingValidationService meetingValidationService;
     private final MeetingMapper meetingMapper; // JHipster MapStruct mapper
 
     public MeetingWorkflowService(
         MeetingRepository meetingRepository,
         MeetingApprovalRepository meetingApprovalRepository,
+        MeetingLevelRepository meetingLevelRepository,
         MeetingValidationService meetingValidationService,
         MeetingMapper meetingMapper
     ) {
         this.meetingRepository = meetingRepository;
         this.meetingApprovalRepository = meetingApprovalRepository;
+        this.meetingLevelRepository = meetingLevelRepository;
         this.meetingValidationService = meetingValidationService;
         this.meetingMapper = meetingMapper;
     }
@@ -190,7 +195,42 @@ public class MeetingWorkflowService {
     }
 
     private boolean requiresUnitApproval(Meeting meeting) {
-        return MeetingLevel.CORPORATE.name().equals(meeting.getLevel().getName()); // map "cấp cao" -> corporate
+        if (meeting.getLevel() == null) {
+            return false;
+        }
+
+        String levelName = meeting.getLevel().getName();
+        if (isCorporateLevelName(levelName)) {
+            return true;
+        }
+
+        Long levelId = meeting.getLevel().getId();
+        if (levelId == null) {
+            return false;
+        }
+
+        return meetingLevelRepository.findById(levelId).map(level -> isCorporateLevelName(level.getName())).orElse(false);
+    }
+
+    private boolean isCorporateLevelName(String levelName) {
+        if (levelName == null) {
+            return false;
+        }
+
+        String normalized = Normalizer.normalize(levelName, Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "")
+            .trim()
+            .toUpperCase()
+            .replace('Đ', 'D')
+            .replace(' ', '_')
+            .replace('-', '_');
+
+        return (
+            MeetingLevel.CORPORATE.name().equals(normalized) ||
+            "COMPANY".equals(normalized) ||
+            "TONG_CONG_TY".equals(normalized) ||
+            "CAP_TONG_CONG_TY".equals(normalized)
+        );
     }
 
     private Meeting getMeeting(Long id) {

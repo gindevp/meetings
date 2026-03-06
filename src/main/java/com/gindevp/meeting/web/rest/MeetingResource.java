@@ -17,6 +17,7 @@ import com.gindevp.meeting.service.MeetingService;
 import com.gindevp.meeting.service.MeetingTaskService;
 import com.gindevp.meeting.service.MeetingWorkflowService;
 import com.gindevp.meeting.service.dto.AgendaItemDTO;
+import com.gindevp.meeting.service.dto.DepartmentDTO;
 import com.gindevp.meeting.service.dto.MeetingDTO;
 import com.gindevp.meeting.service.dto.MeetingDocumentDTO;
 import com.gindevp.meeting.service.dto.MeetingParticipantDTO;
@@ -135,7 +136,7 @@ public class MeetingResource {
         Boolean submitAfterCreate
     ) {}
 
-    public record ParticipantRequest(Long userId, String role, Boolean isRequired) {}
+    public record ParticipantRequest(Long userId, Long departmentId, String role, Boolean isRequired) {}
 
     public record AgendaRequest(String topic, String presenterName, Integer durationMinutes, Integer itemOrder) {}
 
@@ -148,7 +149,8 @@ public class MeetingResource {
         String status,
         Integer remindBeforeMinutes,
         Long assigneeId,
-        Long assignedById
+        Long assignedById,
+        Long departmentId
     ) {}
 
     public record DocumentRequest(
@@ -262,9 +264,17 @@ public class MeetingResource {
                 participantDTO.setIsRequired(p.isRequired() != null ? p.isRequired() : true);
                 participantDTO.setAttendance(com.gindevp.meeting.domain.enumeration.AttendanceStatus.NOT_MARKED);
 
-                UserDTO userDTO = new UserDTO();
-                userDTO.setId(p.userId());
-                participantDTO.setUser(userDTO);
+                if (p.userId() != null) {
+                    UserDTO userDTO = new UserDTO();
+                    userDTO.setId(p.userId());
+                    participantDTO.setUser(userDTO);
+                }
+
+                if (p.departmentId() != null) {
+                    DepartmentDTO departmentDTO = new DepartmentDTO();
+                    departmentDTO.setId(p.departmentId());
+                    participantDTO.setDepartment(departmentDTO);
+                }
 
                 participantDTO.setMeeting(meetingDTO);
                 meetingParticipantService.save(participantDTO);
@@ -309,6 +319,12 @@ public class MeetingResource {
                     UserDTO assignedBy = new UserDTO();
                     assignedBy.setId(assignedById);
                     taskDTO.setAssignedBy(assignedBy);
+                }
+
+                if (t.departmentId() != null) {
+                    DepartmentDTO departmentDTO = new DepartmentDTO();
+                    departmentDTO.setId(t.departmentId());
+                    taskDTO.setDepartment(departmentDTO);
                 }
 
                 MeetingTaskDTO savedTask = meetingTaskService.save(taskDTO);

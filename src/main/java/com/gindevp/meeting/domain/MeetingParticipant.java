@@ -39,9 +39,11 @@ public class MeetingParticipant implements Serializable {
     @Column(name = "absent_reason")
     private String absentReason;
 
-    @ManyToOne(optional = false)
-    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Department department;
 
     @ManyToOne(optional = false)
     @NotNull
@@ -141,6 +143,19 @@ public class MeetingParticipant implements Serializable {
 
     public MeetingParticipant user(User user) {
         this.setUser(user);
+        return this;
+    }
+
+    public Department getDepartment() {
+        return this.department;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
+
+    public MeetingParticipant department(Department department) {
+        this.setDepartment(department);
         return this;
     }
 

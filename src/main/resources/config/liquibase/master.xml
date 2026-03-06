@@ -37,6 +37,7 @@
     <include file="config/liquibase/changelog/202602240001_add_soft_delete.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603020001_add_user_department.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603040001_add_task_ref_to_meeting_document.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603050001_add_department_refs_to_participant_and_task.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 </databaseChangeLog>

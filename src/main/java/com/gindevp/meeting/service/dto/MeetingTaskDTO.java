@@ -36,6 +36,8 @@ public class MeetingTaskDTO implements Serializable {
 
     private UserDTO assignedBy;
 
+    private DepartmentDTO department;
+
     @NotNull
     private MeetingDTO meeting;
 
@@ -111,6 +113,14 @@ public class MeetingTaskDTO implements Serializable {
         this.assignedBy = assignedBy;
     }
 
+    public DepartmentDTO getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(DepartmentDTO department) {
+        this.department = department;
+    }
+
     public MeetingDTO getMeeting() {
         return meeting;
     }
@@ -153,6 +163,7 @@ public class MeetingTaskDTO implements Serializable {
             ", remindBeforeMinutes=" + getRemindBeforeMinutes() +
             ", assignee=" + getAssignee() +
             ", assignedBy=" + getAssignedBy() +
+            ", department=" + getDepartment() +
             ", meeting=" + getMeeting() +
             "}";
     }

@@ -25,8 +25,9 @@ public class MeetingParticipantDTO implements Serializable {
 
     private String absentReason;
 
-    @NotNull
     private UserDTO user;
+
+    private DepartmentDTO department;
 
     @NotNull
     private MeetingDTO meeting;
@@ -79,6 +80,14 @@ public class MeetingParticipantDTO implements Serializable {
         this.user = user;
     }
 
+    public DepartmentDTO getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(DepartmentDTO department) {
+        this.department = department;
+    }
+
     public MeetingDTO getMeeting() {
         return meeting;
     }
@@ -118,6 +127,7 @@ public class MeetingParticipantDTO implements Serializable {
             ", attendance='" + getAttendance() + "'" +
             ", absentReason='" + getAbsentReason() + "'" +
             ", user=" + getUser() +
+            ", department=" + getDepartment() +
             ", meeting=" + getMeeting() +
             "}";
     }

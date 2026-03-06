@@ -1,8 +1,10 @@
 package com.gindevp.meeting.service.mapper;
 
+import com.gindevp.meeting.domain.Department;
 import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.MeetingTask;
 import com.gindevp.meeting.domain.User;
+import com.gindevp.meeting.service.dto.DepartmentDTO;
 import com.gindevp.meeting.service.dto.MeetingDTO;
 import com.gindevp.meeting.service.dto.MeetingTaskDTO;
 import com.gindevp.meeting.service.dto.UserDTO;
@@ -15,6 +17,7 @@ import org.mapstruct.*;
 public interface MeetingTaskMapper extends EntityMapper<MeetingTaskDTO, MeetingTask> {
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = "userLogin")
     @Mapping(target = "assignedBy", source = "assignedBy", qualifiedByName = "userLogin")
+    @Mapping(target = "department", source = "department", qualifiedByName = "departmentName")
     @Mapping(target = "meeting", source = "meeting", qualifiedByName = "meetingId")
     MeetingTaskDTO toDto(MeetingTask s);
 
@@ -23,6 +26,12 @@ public interface MeetingTaskMapper extends EntityMapper<MeetingTaskDTO, MeetingT
     @Mapping(target = "id", source = "id")
     @Mapping(target = "login", source = "login")
     UserDTO toDtoUserLogin(User user);
+
+    @Named("departmentName")
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name")
+    DepartmentDTO toDtoDepartmentName(Department department);
 
     @Named("meetingId")
     @BeanMapping(ignoreByDefault = true)
