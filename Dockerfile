@@ -1,11 +1,9 @@
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /app
 
-# Copy project files needed by Maven build plugins
+# Copy project files needed for backend Maven build
 COPY pom.xml .
 COPY sonar-project.properties .
-COPY package.json .
-COPY package-lock.json .
 COPY src ./src
 
 # Build backend jar only for Railway (disable webapp profile explicitly)
