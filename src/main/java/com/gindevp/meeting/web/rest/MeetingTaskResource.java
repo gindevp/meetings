@@ -1,5 +1,6 @@
 package com.gindevp.meeting.web.rest;
 
+import com.gindevp.meeting.domain.enumeration.TaskStatus;
 import com.gindevp.meeting.repository.MeetingTaskRepository;
 import com.gindevp.meeting.service.MeetingTaskService;
 import com.gindevp.meeting.service.dto.MeetingTaskDTO;
@@ -128,6 +129,36 @@ public class MeetingTaskResource {
             result,
             HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, meetingTaskDTO.getId().toString())
         );
+    }
+
+    /**
+     * {@code PATCH  /meeting-tasks/:id/status} : Update only the status of a meetingTask.
+     */
+    @PatchMapping(value = "/{id}/status", consumes = { "application/json", "application/merge-patch+json" })
+    public ResponseEntity<MeetingTaskDTO> updateMeetingTaskStatus(
+        @PathVariable(value = "id") Long id,
+        @RequestBody java.util.Map<String, String> body
+    ) throws URISyntaxException {
+        String statusStr = body != null ? body.get("status") : null;
+        if (statusStr == null || statusStr.isBlank()) {
+            throw new BadRequestAlertException("status is required", ENTITY_NAME, "statusnull");
+        }
+        TaskStatus status;
+        try {
+            status = TaskStatus.valueOf(statusStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestAlertException("Invalid status", ENTITY_NAME, "invalidstatus");
+        }
+        Optional<MeetingTaskDTO> existing = meetingTaskService.findOne(id);
+        if (existing.isEmpty()) {
+            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+        }
+        MeetingTaskDTO dto = existing.get();
+        dto.setStatus(status);
+        meetingTaskService.update(dto);
+        return ResponseEntity.ok()
+            .headers(HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, id.toString()))
+            .body(meetingTaskService.findOne(id).orElseThrow());
     }
 
     /**

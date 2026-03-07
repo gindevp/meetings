@@ -63,6 +63,7 @@ public class MeetingDocument implements Serializable {
             "room",
             "requester",
             "host",
+            "secretary",
         },
         allowSetters = true
     )

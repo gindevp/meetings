@@ -20,6 +20,11 @@ public class EquipmentDTO implements Serializable {
 
     private String description;
 
+    @Min(value = 0)
+    private Integer totalQuantity = 999;
+
+    private String equipmentType;
+
     public Long getId() {
         return id;
     }
@@ -50,6 +55,22 @@ public class EquipmentDTO implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Integer getTotalQuantity() {
+        return totalQuantity;
+    }
+
+    public void setTotalQuantity(Integer totalQuantity) {
+        this.totalQuantity = totalQuantity;
+    }
+
+    public String getEquipmentType() {
+        return equipmentType;
+    }
+
+    public void setEquipmentType(String equipmentType) {
+        this.equipmentType = equipmentType;
     }
 
     @Override

@@ -46,7 +46,27 @@ public interface MeetingParticipantRepository extends JpaRepository<MeetingParti
     )
     Optional<MeetingParticipant> findOneWithToOneRelationships(@Param("id") Long id);
 
+    @Query("select p from MeetingParticipant p left join fetch p.user left join fetch p.meeting where p.id = :id")
+    Optional<MeetingParticipant> findByIdWithMeetingAndUser(@Param("id") Long id);
+
+    @Query(
+        "select p from MeetingParticipant p left join fetch p.user left join fetch p.department left join fetch p.meeting left join fetch p.meeting.host left join fetch p.meeting.requester left join fetch p.meeting.organizerDepartment left join fetch p.meeting.level"
+    )
+    List<MeetingParticipant> findAllWithMeetingAndUser();
+
     @Modifying
     @Query("delete from MeetingParticipant mp where mp.meeting.id = :meetingId")
     void deleteByMeetingId(@Param("meetingId") Long meetingId);
+
+    @Query("select count(p) from MeetingParticipant p where p.meeting.id = :meetingId and p.user.login = ?#{authentication.name}")
+    long countByMeetingIdAndCurrentUser(@Param("meetingId") Long meetingId);
+
+    @Query("select p from MeetingParticipant p left join fetch p.user left join fetch p.department where p.meeting.id = :meetingId")
+    List<MeetingParticipant> findByMeetingId(@Param("meetingId") Long meetingId);
+
+    @Query(
+        "select count(p) from MeetingParticipant p where p.meeting.id = :meetingId and (" +
+        "p.department.id = :departmentId or (p.user is not null and p.user.department.id = :departmentId))"
+    )
+    long countByMeetingIdAndDepartmentId(@Param("meetingId") Long meetingId, @Param("departmentId") Long departmentId);
 }

@@ -2,6 +2,8 @@ package com.gindevp.meeting.service;
 
 import com.gindevp.meeting.domain.Incident;
 import com.gindevp.meeting.repository.IncidentRepository;
+import com.gindevp.meeting.repository.MeetingRepository;
+import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.service.dto.IncidentDTO;
 import com.gindevp.meeting.service.mapper.IncidentMapper;
 import java.util.LinkedList;
@@ -28,9 +30,20 @@ public class IncidentService {
 
     private final IncidentMapper incidentMapper;
 
-    public IncidentService(IncidentRepository incidentRepository, IncidentMapper incidentMapper) {
+    private final MeetingRepository meetingRepository;
+
+    private final UserRepository userRepository;
+
+    public IncidentService(
+        IncidentRepository incidentRepository,
+        IncidentMapper incidentMapper,
+        MeetingRepository meetingRepository,
+        UserRepository userRepository
+    ) {
         this.incidentRepository = incidentRepository;
         this.incidentMapper = incidentMapper;
+        this.meetingRepository = meetingRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -42,6 +55,12 @@ public class IncidentService {
     public IncidentDTO save(IncidentDTO incidentDTO) {
         LOG.debug("Request to save Incident : {}", incidentDTO);
         Incident incident = incidentMapper.toEntity(incidentDTO);
+        if (incidentDTO.getMeeting() != null && incidentDTO.getMeeting().getId() != null) {
+            incident.setMeeting(meetingRepository.getReferenceById(incidentDTO.getMeeting().getId()));
+        }
+        if (incidentDTO.getReportedBy() != null && incidentDTO.getReportedBy().getId() != null) {
+            incident.setReportedBy(userRepository.getReferenceById(incidentDTO.getReportedBy().getId()));
+        }
         incident = incidentRepository.save(incident);
         return incidentMapper.toDto(incident);
     }

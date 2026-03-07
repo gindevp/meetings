@@ -1,9 +1,12 @@
 package com.gindevp.meeting.web.rest;
 
+import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.User;
+import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import com.gindevp.meeting.domain.enumeration.TaskStatus;
 import com.gindevp.meeting.domain.enumeration.TaskType;
 import com.gindevp.meeting.repository.AgendaItemRepository;
+import com.gindevp.meeting.repository.DepartmentRepository;
 import com.gindevp.meeting.repository.MeetingDocumentRepository;
 import com.gindevp.meeting.repository.MeetingParticipantRepository;
 import com.gindevp.meeting.repository.MeetingRepository;
@@ -12,6 +15,7 @@ import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.security.SecurityUtils;
 import com.gindevp.meeting.service.AgendaItemService;
 import com.gindevp.meeting.service.MeetingDocumentService;
+import com.gindevp.meeting.service.MeetingNotificationService;
 import com.gindevp.meeting.service.MeetingParticipantService;
 import com.gindevp.meeting.service.MeetingService;
 import com.gindevp.meeting.service.MeetingTaskService;
@@ -30,10 +34,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -87,6 +93,10 @@ public class MeetingResource {
 
     private final MeetingDocumentRepository meetingDocumentRepository;
 
+    private final DepartmentRepository departmentRepository;
+
+    private final MeetingNotificationService meetingNotificationService;
+
     public MeetingResource(
         MeetingService meetingService,
         UserRepository userRepository,
@@ -99,7 +109,9 @@ public class MeetingResource {
         MeetingParticipantRepository meetingParticipantRepository,
         AgendaItemRepository agendaItemRepository,
         MeetingTaskRepository meetingTaskRepository,
-        MeetingDocumentRepository meetingDocumentRepository
+        MeetingDocumentRepository meetingDocumentRepository,
+        DepartmentRepository departmentRepository,
+        MeetingNotificationService meetingNotificationService
     ) {
         this.meetingService = meetingService;
         this.userRepository = userRepository;
@@ -113,6 +125,8 @@ public class MeetingResource {
         this.agendaItemRepository = agendaItemRepository;
         this.meetingTaskRepository = meetingTaskRepository;
         this.meetingDocumentRepository = meetingDocumentRepository;
+        this.departmentRepository = departmentRepository;
+        this.meetingNotificationService = meetingNotificationService;
     }
 
     @PostMapping("")
@@ -209,6 +223,11 @@ public class MeetingResource {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
 
+        Meeting meeting = meetingRepository.findOneWithToOneRelationships(id).orElseThrow();
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can update this meeting", ENTITY_NAME, "forbidden");
+        }
+
         MeetingDTO existingMeeting = meetingService
             .findOne(id)
             .orElseThrow(() -> new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound"));
@@ -234,6 +253,9 @@ public class MeetingResource {
         if (meetingDTO.getHost() == null) {
             meetingDTO.setHost(existingMeeting.getHost());
         }
+        if (meetingDTO.getSecretary() == null) {
+            meetingDTO.setSecretary(existingMeeting.getSecretary());
+        }
 
         meetingDTO = meetingService.update(meetingDTO);
 
@@ -245,6 +267,15 @@ public class MeetingResource {
         saveDetails(meetingDTO, request.participants(), request.agendaItems(), request.tasks(), request.documents());
 
         meetingDTO = meetingService.findOne(id).orElse(meetingDTO);
+
+        meetingRepository
+            .findOneWithToOneRelationships(id)
+            .ifPresent(m -> {
+                if (m.getStatus() == MeetingStatus.APPROVED || m.getStatus() == MeetingStatus.PENDING_APPROVAL) {
+                    meetingNotificationService.notifyMeetingCreatedOrUpdated(m, false);
+                }
+            });
+
         return ResponseEntity.ok()
             .headers(HeaderUtil.createEntityUpdateAlert(applicationName, true, ENTITY_NAME, meetingDTO.getId().toString()))
             .body(meetingDTO);
@@ -257,6 +288,57 @@ public class MeetingResource {
         List<TaskRequest> tasks,
         List<DocumentRequest> documents
     ) {
+        Set<String> allowedPresenterNames = new HashSet<>();
+        Set<Long> allowedAssigneeIds = new HashSet<>();
+        if (participants != null) {
+            for (ParticipantRequest p : participants) {
+                if (p.userId() != null) {
+                    userRepository
+                        .findById(p.userId())
+                        .ifPresent(u -> {
+                            allowedAssigneeIds.add(u.getId());
+                            String name =
+                                (u.getFirstName() != null ? u.getFirstName() + " " : "") + (u.getLastName() != null ? u.getLastName() : "");
+                            if (name != null && !name.isBlank()) allowedPresenterNames.add(name.trim());
+                            if (u.getLogin() != null && !u.getLogin().isBlank()) allowedPresenterNames.add(u.getLogin());
+                        });
+                }
+                if (p.departmentId() != null) {
+                    departmentRepository
+                        .findById(p.departmentId())
+                        .ifPresent(d -> {
+                            if (d.getName() != null && !d.getName().isBlank()) allowedPresenterNames.add(d.getName().trim());
+                        });
+                }
+            }
+        }
+        if (agendaItems != null) {
+            for (AgendaRequest a : agendaItems) {
+                if (a.presenterName() != null && !a.presenterName().isBlank()) {
+                    String name = a.presenterName().trim();
+                    boolean matches = allowedPresenterNames.stream().anyMatch(n -> n.equalsIgnoreCase(name));
+                    if (!matches) {
+                        throw new BadRequestAlertException(
+                            "Người trình bày phải nằm trong thành phần tham dự: " + name,
+                            ENTITY_NAME,
+                            "agendaPresenterNotInParticipants"
+                        );
+                    }
+                }
+            }
+        }
+        if (tasks != null) {
+            for (TaskRequest t : tasks) {
+                if (t.assigneeId() != null && !allowedAssigneeIds.contains(t.assigneeId())) {
+                    throw new BadRequestAlertException(
+                        "Người được giao task phải nằm trong thành phần tham dự",
+                        ENTITY_NAME,
+                        "taskAssigneeNotInParticipants"
+                    );
+                }
+            }
+        }
+
         if (participants != null) {
             for (ParticipantRequest p : participants) {
                 MeetingParticipantDTO participantDTO = new MeetingParticipantDTO();
@@ -387,6 +469,10 @@ public class MeetingResource {
         if (!meetingRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
+        Meeting meeting = meetingRepository.findOneWithToOneRelationships(id).orElseThrow();
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can update this meeting", ENTITY_NAME, "forbidden");
+        }
 
         meetingDTO = meetingService.update(meetingDTO);
         return ResponseEntity.ok()
@@ -409,6 +495,11 @@ public class MeetingResource {
 
         if (!meetingRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+        }
+
+        Meeting meeting = meetingRepository.findOneWithToOneRelationships(id).orElseThrow();
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can update this meeting", ENTITY_NAME, "forbidden");
         }
 
         Optional<MeetingDTO> result = meetingService.partialUpdate(meetingDTO);
@@ -445,6 +536,12 @@ public class MeetingResource {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMeeting(@PathVariable("id") Long id) {
         LOG.debug("REST request to delete Meeting : {}", id);
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(id)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can delete this meeting", ENTITY_NAME, "forbidden");
+        }
         meetingService.delete(id);
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
@@ -454,6 +551,12 @@ public class MeetingResource {
     @PostMapping("/{id}/submit")
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> submit(@PathVariable Long id) {
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(id)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can submit this meeting", ENTITY_NAME, "forbidden");
+        }
         MeetingDTO dto = meetingWorkflowService.submit(id);
         return ResponseEntity.ok(dto);
     }
@@ -483,6 +586,12 @@ public class MeetingResource {
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> cancel(@PathVariable Long id) {
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(id)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can cancel this meeting", ENTITY_NAME, "forbidden");
+        }
         MeetingDTO dto = meetingWorkflowService.cancel(id);
         return ResponseEntity.ok(dto);
     }
@@ -490,6 +599,12 @@ public class MeetingResource {
     @PostMapping("/{id}/complete")
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> complete(@PathVariable Long id) {
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(id)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can complete this meeting", ENTITY_NAME, "forbidden");
+        }
         MeetingDTO dto = meetingWorkflowService.complete(id);
         return ResponseEntity.ok(dto);
     }
@@ -500,5 +615,12 @@ public class MeetingResource {
         return userRepository
             .findOneByLogin(login)
             .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
+    }
+
+    private boolean canManageMeeting(Meeting meeting, User user) {
+        if (meeting.getRequester() != null && meeting.getRequester().getId().equals(user.getId())) return true;
+        if (meeting.getHost() != null && meeting.getHost().getId().equals(user.getId())) return true;
+        if (meeting.getSecretary() != null && meeting.getSecretary().getId().equals(user.getId())) return true;
+        return false;
     }
 }

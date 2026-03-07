@@ -1,0 +1,106 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}" lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Báo cáo tổng hợp cuối tuần</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 8px 8px 0 0;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      .content {
+        background: #f8fafc;
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+      }
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .stat {
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        min-width: 120px;
+      }
+      .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0d9488;
+      }
+      .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+      }
+      .btn {
+        display: inline-block;
+        background: #0d9488;
+        color: white !important;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        margin-top: 16px;
+      }
+      .footer {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Báo cáo tổng hợp cuối tuần</h1>
+    </div>
+    <div class="content">
+      <p th:if="${user != null}">Xin chào <span th:text="${user.firstName != null ? user.firstName : user.login}">Admin</span>,</p>
+      <p>Dưới đây là báo cáo tổng hợp cuộc họp trong tuần vừa qua:</p>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value" th:text="${totalMeetings}">0</span><br /><span class="stat-label">Tổng cuộc họp</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" th:text="${approvedMeetings}">0</span><br /><span class="stat-label">Đã phê duyệt</span>
+        </div>
+        <div class="stat"><span class="stat-value" th:text="${rejectedMeetings}">0</span><br /><span class="stat-label">Từ chối</span></div>
+        <div class="stat">
+          <span class="stat-value" th:text="${completedMeetings}">0</span><br /><span class="stat-label">Đã hoàn thành</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" th:text="${pendingTasks}">0</span><br /><span class="stat-label">Nhiệm vụ chưa xong</span>
+        </div>
+      </div>
+      <p th:if="${linkUrl != null and !linkUrl.isEmpty()}">
+        <a th:href="@{|${baseUrl}${linkUrl}|}" class="btn">Xem chi tiết</a>
+      </p>
+      <div class="footer">
+        <span>Trân trọng,</span><br />
+        <em>Hệ thống Quản lý cuộc họp</em>
+      </div>
+    </div>
+  </body>
+</html>

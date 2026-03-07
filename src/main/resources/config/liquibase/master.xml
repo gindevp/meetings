@@ -38,6 +38,16 @@
     <include file="config/liquibase/changelog/202603020001_add_user_department.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603040001_add_task_ref_to_meeting_document.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603050001_add_department_refs_to_participant_and_task.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603070001_add_user_position.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603070002_add_meeting_secretary.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603070003_add_participant_confirmation_status.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260307100001_added_entity_Setting.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260307100002_added_entity_Notification.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603080001_add_equipment_total_quantity.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603080002_add_equipment_type.xml" relativeToChangelogFile="false"/>
+    <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
+    <include file="config/liquibase/changelog/20260307100001_added_entity_constraints_Setting.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260307100002_added_entity_constraints_Notification.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
     <!-- jhipster-needle-liquibase-add-incremental-changelog - JHipster will add incremental liquibase changelogs here -->
 </databaseChangeLog>

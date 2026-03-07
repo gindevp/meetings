@@ -42,16 +42,20 @@ public class UserService {
 
     private final DepartmentRepository departmentRepository;
 
+    private final SettingService settingService;
+
     public UserService(
         UserRepository userRepository,
         PasswordEncoder passwordEncoder,
         AuthorityRepository authorityRepository,
-        DepartmentRepository departmentRepository
+        DepartmentRepository departmentRepository,
+        SettingService settingService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authorityRepository = authorityRepository;
         this.departmentRepository = departmentRepository;
+        this.settingService = settingService;
     }
 
     public Optional<User> activateRegistration(String key) {
@@ -128,6 +132,7 @@ public class UserService {
         authorityRepository.findById(AuthoritiesConstants.USER).ifPresent(authorities::add);
         newUser.setAuthorities(authorities);
         userRepository.save(newUser);
+        settingService.ensureDefaultSettingsForUser(newUser.getId());
         LOG.debug("Created Information for User: {}", newUser);
         return newUser;
     }
@@ -176,7 +181,12 @@ public class UserService {
             departmentRepository.findById(userDTO.getDepartmentId()).ifPresent(user::setDepartment);
         }
 
+        if (userDTO.getPosition() != null) {
+            user.setPosition(userDTO.getPosition());
+        }
+
         userRepository.save(user);
+        settingService.ensureDefaultSettingsForUser(user.getId());
         LOG.debug("Created Information for User: {}", user);
         return user;
     }
@@ -217,6 +227,8 @@ public class UserService {
                 } else {
                     user.setDepartment(null);
                 }
+
+                user.setPosition(userDTO.getPosition());
 
                 userRepository.save(user);
                 LOG.debug("Changed Information for User: {}", user);

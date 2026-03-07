@@ -1,6 +1,7 @@
 package com.gindevp.meeting.service.dto;
 
 import com.gindevp.meeting.domain.enumeration.AttendanceStatus;
+import com.gindevp.meeting.domain.enumeration.ConfirmationStatus;
 import com.gindevp.meeting.domain.enumeration.ParticipantRole;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
@@ -22,6 +23,9 @@ public class MeetingParticipantDTO implements Serializable {
 
     @NotNull
     private AttendanceStatus attendance;
+
+    @NotNull
+    private ConfirmationStatus confirmationStatus = ConfirmationStatus.PENDING;
 
     private String absentReason;
 
@@ -62,6 +66,14 @@ public class MeetingParticipantDTO implements Serializable {
 
     public void setAttendance(AttendanceStatus attendance) {
         this.attendance = attendance;
+    }
+
+    public ConfirmationStatus getConfirmationStatus() {
+        return confirmationStatus;
+    }
+
+    public void setConfirmationStatus(ConfirmationStatus confirmationStatus) {
+        this.confirmationStatus = confirmationStatus;
     }
 
     public String getAbsentReason() {
@@ -125,6 +137,7 @@ public class MeetingParticipantDTO implements Serializable {
             ", role='" + getRole() + "'" +
             ", isRequired='" + getIsRequired() + "'" +
             ", attendance='" + getAttendance() + "'" +
+            ", confirmationStatus='" + getConfirmationStatus() + "'" +
             ", absentReason='" + getAbsentReason() + "'" +
             ", user=" + getUser() +
             ", department=" + getDepartment() +

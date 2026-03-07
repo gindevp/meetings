@@ -1,6 +1,7 @@
 package com.gindevp.meeting.repository;
 
 import com.gindevp.meeting.domain.MeetingTask;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -50,4 +51,12 @@ public interface MeetingTaskRepository extends JpaRepository<MeetingTask, Long> 
     @Modifying
     @Query("delete from MeetingTask mt where mt.meeting.id = :meetingId")
     void deleteByMeetingId(@Param("meetingId") Long meetingId);
+
+    @Query(
+        "select t from MeetingTask t left join fetch t.assignee left join fetch t.meeting where t.dueAt is not null and t.dueAt >= :from and t.dueAt <= :to and t.status <> com.gindevp.meeting.domain.enumeration.TaskStatus.DONE"
+    )
+    List<MeetingTask> findByDueAtBetweenAndStatusNotDone(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query("select count(t) from MeetingTask t where t.status <> com.gindevp.meeting.domain.enumeration.TaskStatus.DONE")
+    long countByStatusNotDone();
 }

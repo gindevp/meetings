@@ -26,20 +26,23 @@ public class MeetingWorkflowService {
     private final MeetingApprovalRepository meetingApprovalRepository;
     private final MeetingLevelRepository meetingLevelRepository;
     private final MeetingValidationService meetingValidationService;
-    private final MeetingMapper meetingMapper; // JHipster MapStruct mapper
+    private final MeetingMapper meetingMapper;
+    private final MeetingNotificationService meetingNotificationService;
 
     public MeetingWorkflowService(
         MeetingRepository meetingRepository,
         MeetingApprovalRepository meetingApprovalRepository,
         MeetingLevelRepository meetingLevelRepository,
         MeetingValidationService meetingValidationService,
-        MeetingMapper meetingMapper
+        MeetingMapper meetingMapper,
+        MeetingNotificationService meetingNotificationService
     ) {
         this.meetingRepository = meetingRepository;
         this.meetingApprovalRepository = meetingApprovalRepository;
         this.meetingLevelRepository = meetingLevelRepository;
         this.meetingValidationService = meetingValidationService;
         this.meetingMapper = meetingMapper;
+        this.meetingNotificationService = meetingNotificationService;
     }
 
     public MeetingDTO submit(Long meetingId) {
@@ -60,7 +63,10 @@ public class MeetingWorkflowService {
             meeting.setSubmittedAt(Instant.now());
         }
 
-        return meetingMapper.toDto(meetingRepository.save(meeting));
+        Meeting saved = meetingRepository.save(meeting);
+        meetingNotificationService.notifyMeetingCreatedOrUpdated(saved, true);
+
+        return meetingMapper.toDto(saved);
     }
 
     public MeetingDTO approveRoom(Long meetingId, User approver) {
@@ -84,6 +90,13 @@ public class MeetingWorkflowService {
         meeting.setStatus(MeetingStatus.APPROVED);
         meeting.setApprovedAt(Instant.now());
         meetingRepository.save(meeting);
+
+        meetingRepository
+            .findOneWithToOneRelationships(meetingId)
+            .ifPresent(m -> {
+                meetingNotificationService.notifyApprovalOrRejection(m, true, null);
+                meetingNotificationService.notifyDepartmentSecretariesForDepartmentParticipants(m);
+            });
 
         return meetingMapper.toDto(meeting);
     }
@@ -129,6 +142,14 @@ public class MeetingWorkflowService {
         meeting.setStatus(MeetingStatus.APPROVED);
         meeting.setApprovedAt(Instant.now());
         meetingRepository.save(meeting);
+
+        meetingRepository
+            .findOneWithToOneRelationships(meetingId)
+            .ifPresent(m -> {
+                meetingNotificationService.notifyApprovalOrRejection(m, true, null);
+                meetingNotificationService.notifyDepartmentSecretariesForDepartmentParticipants(m);
+            });
+
         return meetingMapper.toDto(meeting);
     }
 

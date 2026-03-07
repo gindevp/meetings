@@ -5,6 +5,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -116,5 +117,26 @@ public class MailService {
     public void sendPasswordResetMail(User user) {
         LOG.debug("Sending password reset email to '{}'", user.getEmail());
         sendEmailFromTemplateSync(user, "mail/passwordResetEmail", "email.reset.title");
+    }
+
+    /**
+     * Gửi email thông báo cuộc họp từ template Thymeleaf.
+     * Variables: title, message, linkUrl (và có thể thêm user nếu cần).
+     */
+    @Async
+    public void sendMeetingNotificationEmail(User user, String subject, String templateName, Map<String, Object> variables) {
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            LOG.debug("Email không tồn tại cho user");
+            return;
+        }
+        Locale locale = user.getLangKey() != null ? Locale.forLanguageTag(user.getLangKey()) : Locale.forLanguageTag("vi");
+        Context context = new Context(locale);
+        context.setVariable(USER, user);
+        context.setVariable(BASE_URL, jHipsterProperties.getMail().getBaseUrl());
+        if (variables != null) {
+            variables.forEach(context::setVariable);
+        }
+        String content = templateEngine.process(templateName, context);
+        sendEmailSync(user.getEmail(), subject, content, false, true);
     }
 }

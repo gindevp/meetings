@@ -37,18 +37,18 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     }
 
     @Query(
-        value = "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host where meeting.statusRecord = 'ACTIVE'",
+        value = "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host left join fetch meeting.secretary where meeting.statusRecord = 'ACTIVE'",
         countQuery = "select count(meeting) from Meeting meeting where meeting.statusRecord = 'ACTIVE'"
     )
     Page<Meeting> findAllWithToOneRelationships(Pageable pageable);
 
     @Query(
-        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host where meeting.statusRecord = 'ACTIVE'"
+        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host left join fetch meeting.secretary where meeting.statusRecord = 'ACTIVE'"
     )
     List<Meeting> findAllWithToOneRelationships();
 
     @Query(
-        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host where meeting.id =:id"
+        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host left join fetch meeting.secretary where meeting.id =:id"
     )
     Optional<Meeting> findOneWithToOneRelationships(@Param("id") Long id);
 
@@ -90,4 +90,14 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
     @Query("select ma.reason from MeetingApproval ma where ma.meeting.id = :meetingId and ma.decision = :decision")
     Optional<String> findRejectionReasonByMeetingId(@Param("meetingId") Long meetingId, @Param("decision") ApprovalDecision decision);
+
+    @Query("select m from Meeting m left join fetch m.requester where m.status = :status and m.startTime >= :from and m.startTime <= :to")
+    List<Meeting> findByStatusAndStartTimeBetween(
+        @Param("status") MeetingStatus status,
+        @Param("from") Instant from,
+        @Param("to") Instant to
+    );
+
+    @Query("select count(m) from Meeting m where m.startTime >= :from and m.startTime < :to and m.status = :status")
+    long countByStatusAndStartTimeBetween(@Param("status") MeetingStatus status, @Param("from") Instant from, @Param("to") Instant to);
 }

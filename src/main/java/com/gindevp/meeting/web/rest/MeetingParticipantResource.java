@@ -1,6 +1,9 @@
 package com.gindevp.meeting.web.rest;
 
+import com.gindevp.meeting.domain.enumeration.AttendanceStatus;
+import com.gindevp.meeting.domain.enumeration.ConfirmationStatus;
 import com.gindevp.meeting.repository.MeetingParticipantRepository;
+import com.gindevp.meeting.security.SecurityUtils;
 import com.gindevp.meeting.service.MeetingParticipantService;
 import com.gindevp.meeting.service.dto.MeetingParticipantDTO;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
@@ -9,8 +12,10 @@ import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -174,5 +179,68 @@ public class MeetingParticipantResource {
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    /**
+     * Respond to meeting invitation (confirm or decline). Only the invited user can call this.
+     */
+    @PostMapping("/{id}/respond")
+    public ResponseEntity<MeetingParticipantDTO> respondToInvitation(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        String statusStr = body.get("confirmationStatus");
+        if (statusStr == null || (!"CONFIRMED".equals(statusStr) && !"DECLINED".equals(statusStr))) {
+            throw new BadRequestAlertException("confirmationStatus must be CONFIRMED or DECLINED", ENTITY_NAME, "invalidStatus");
+        }
+        ConfirmationStatus status = ConfirmationStatus.valueOf(statusStr);
+        String absentReason = body.get("absentReason");
+        MeetingParticipantDTO dto = meetingParticipantService.respondToInvitation(id, currentLogin, status, absentReason);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Secretary selects individual representatives for a department-only participant.
+     * Body: { "userIds": [1, 2, 3] }
+     */
+    @PostMapping("/{id}/select-representatives")
+    public ResponseEntity<List<MeetingParticipantDTO>> selectRepresentatives(
+        @PathVariable("id") Long id,
+        @RequestBody Map<String, Object> body
+    ) {
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        @SuppressWarnings("unchecked")
+        List<Number> raw = (List<Number>) body.get("userIds");
+        if (raw == null || raw.isEmpty()) {
+            throw new BadRequestAlertException("userIds is required and must not be empty", ENTITY_NAME, "userIdsRequired");
+        }
+        List<Long> userIds = raw.stream().map(Number::longValue).collect(Collectors.toList());
+        List<MeetingParticipantDTO> result = meetingParticipantService.selectRepresentatives(id, currentLogin, userIds);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Update attendance (roll call). Host/secretary can set any; participant can set own to PRESENT.
+     */
+    @PatchMapping("/{id}/attendance")
+    public ResponseEntity<MeetingParticipantDTO> updateAttendance(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        String statusStr = body.get("attendance");
+        if (statusStr == null) {
+            throw new BadRequestAlertException("attendance is required", ENTITY_NAME, "invalidAttendance");
+        }
+        AttendanceStatus attendance;
+        try {
+            attendance = AttendanceStatus.valueOf(statusStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestAlertException(
+                "attendance must be PRESENT, ABSENT, NOT_MARKED or EXCUSED",
+                ENTITY_NAME,
+                "invalidAttendance"
+            );
+        }
+        MeetingParticipantDTO dto = meetingParticipantService.updateAttendance(id, currentLogin, attendance);
+        return ResponseEntity.ok(dto);
     }
 }

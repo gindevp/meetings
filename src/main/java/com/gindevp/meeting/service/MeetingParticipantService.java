@@ -1,9 +1,18 @@
 package com.gindevp.meeting.service;
 
+import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.MeetingParticipant;
+import com.gindevp.meeting.domain.User;
+import com.gindevp.meeting.domain.enumeration.AttendanceStatus;
+import com.gindevp.meeting.domain.enumeration.ConfirmationStatus;
+import com.gindevp.meeting.domain.enumeration.ParticipantRole;
 import com.gindevp.meeting.repository.MeetingParticipantRepository;
+import com.gindevp.meeting.repository.MeetingRepository;
+import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.service.dto.MeetingParticipantDTO;
 import com.gindevp.meeting.service.mapper.MeetingParticipantMapper;
+import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -30,12 +39,24 @@ public class MeetingParticipantService {
 
     private final MeetingParticipantMapper meetingParticipantMapper;
 
+    private final MeetingRepository meetingRepository;
+
+    private final UserRepository userRepository;
+
+    private final MeetingNotificationService meetingNotificationService;
+
     public MeetingParticipantService(
         MeetingParticipantRepository meetingParticipantRepository,
-        MeetingParticipantMapper meetingParticipantMapper
+        MeetingParticipantMapper meetingParticipantMapper,
+        MeetingRepository meetingRepository,
+        UserRepository userRepository,
+        MeetingNotificationService meetingNotificationService
     ) {
         this.meetingParticipantRepository = meetingParticipantRepository;
         this.meetingParticipantMapper = meetingParticipantMapper;
+        this.meetingRepository = meetingRepository;
+        this.userRepository = userRepository;
+        this.meetingNotificationService = meetingNotificationService;
     }
 
     /**
@@ -95,7 +116,7 @@ public class MeetingParticipantService {
     public List<MeetingParticipantDTO> findAll() {
         LOG.debug("Request to get all MeetingParticipants");
         return meetingParticipantRepository
-            .findAll()
+            .findAllWithMeetingAndUser()
             .stream()
             .map(meetingParticipantMapper::toDto)
             .collect(Collectors.toCollection(LinkedList::new));
@@ -130,6 +151,162 @@ public class MeetingParticipantService {
     public void delete(Long id) {
         LOG.debug("Request to delete MeetingParticipant : {}", id);
         meetingParticipantRepository.deleteById(id);
+    }
+
+    /**
+     * Participant (invitee) responds to invitation: confirm or decline attendance.
+     * Only the participant's user (by login) can call this.
+     */
+    public MeetingParticipantDTO respondToInvitation(
+        Long participantId,
+        String currentUserLogin,
+        ConfirmationStatus confirmationStatus,
+        String absentReason
+    ) {
+        MeetingParticipant participant = meetingParticipantRepository
+            .findByIdWithMeetingAndUser(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+        if (participant.getUser() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot respond for department-only participant; assign user first");
+        }
+        if (!participant.getUser().getLogin().equalsIgnoreCase(currentUserLogin)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the invited user can respond to this invitation");
+        }
+        if (confirmationStatus == ConfirmationStatus.DECLINED && (absentReason == null || absentReason.trim().isEmpty())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Absent reason is required when declining");
+        }
+        participant.setConfirmationStatus(confirmationStatus);
+        participant.setAbsentReason(confirmationStatus == ConfirmationStatus.DECLINED ? absentReason : null);
+        participant = meetingParticipantRepository.save(participant);
+        return meetingParticipantMapper.toDto(participant);
+    }
+
+    /**
+     * Update attendance (roll call). Host/secretary can set any participant's attendance;
+     * participant can only set own attendance to PRESENT (self check-in).
+     */
+    public MeetingParticipantDTO updateAttendance(Long participantId, String currentUserLogin, AttendanceStatus attendance) {
+        MeetingParticipant participant = meetingParticipantRepository
+            .findByIdWithMeetingAndUser(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+        var meeting = participant.getMeeting();
+        if (meeting == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
+        }
+        boolean isHost = meeting.getHost() != null && currentUserLogin.equalsIgnoreCase(meeting.getHost().getLogin());
+        boolean isSecretary = meeting.getSecretary() != null && currentUserLogin.equalsIgnoreCase(meeting.getSecretary().getLogin());
+        boolean isSelf = participant.getUser() != null && currentUserLogin.equalsIgnoreCase(participant.getUser().getLogin());
+
+        if (isHost || isSecretary) {
+            participant.setAttendance(attendance);
+        } else if (isSelf && attendance == AttendanceStatus.PRESENT) {
+            participant.setAttendance(AttendanceStatus.PRESENT);
+        } else {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Only host/secretary can mark others; you can only mark yourself present"
+            );
+        }
+        participant = meetingParticipantRepository.save(participant);
+        return meetingParticipantMapper.toDto(participant);
+    }
+
+    /**
+     * Secretary selects individual representatives for a department-only participant.
+     * Replaces the department participant with user participants and notifies selected users.
+     */
+    public List<MeetingParticipantDTO> selectRepresentatives(Long participantId, String currentUserLogin, List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one user must be selected");
+        }
+
+        MeetingParticipant deptParticipant = meetingParticipantRepository
+            .findById(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+
+        if (deptParticipant.getUser() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant already has assigned users");
+        }
+        if (deptParticipant.getDepartment() == null || deptParticipant.getDepartment().getId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant must be department-based");
+        }
+
+        Meeting meeting = deptParticipant.getMeeting();
+        if (meeting == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
+        }
+
+        User currentUser = userRepository
+            .findOneWithAuthoritiesByLogin(currentUserLogin)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User not found"));
+
+        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName()));
+        boolean isSecretary = currentUser.getAuthorities().stream().anyMatch(a -> "ROLE_SECRETARY".equals(a.getName()));
+        boolean sameDepartment =
+            currentUser.getDepartment() != null && currentUser.getDepartment().getId().equals(deptParticipant.getDepartment().getId());
+
+        if (!isAdmin && (!isSecretary || !sameDepartment)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Only secretary of the same department or admin can select representatives"
+            );
+        }
+
+        if (!isCorporateLevel(meeting)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meeting must be company-level");
+        }
+
+        Long deptId = deptParticipant.getDepartment().getId();
+        List<User> selectedUsers = new ArrayList<>();
+        for (Long uid : userIds) {
+            User u = userRepository.findById(uid).orElse(null);
+            if (u == null) continue;
+            if (u.getDepartment() == null || !u.getDepartment().getId().equals(deptId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User " + uid + " is not in the invited department");
+            }
+            selectedUsers.add(u);
+        }
+
+        if (selectedUsers.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid users selected");
+        }
+
+        meetingParticipantRepository.delete(deptParticipant);
+
+        Meeting meetingWithLevel = meetingRepository.findOneWithToOneRelationships(meeting.getId()).orElse(meeting);
+        List<MeetingParticipantDTO> result = new ArrayList<>();
+        for (User u : selectedUsers) {
+            MeetingParticipant p = new MeetingParticipant();
+            p.setMeeting(meeting);
+            p.setUser(u);
+            p.setDepartment(null);
+            p.setRole(ParticipantRole.ATTENDEE);
+            p.setIsRequired(true);
+            p.setAttendance(AttendanceStatus.NOT_MARKED);
+            p.setConfirmationStatus(ConfirmationStatus.PENDING);
+            p = meetingParticipantRepository.save(p);
+            result.add(meetingParticipantMapper.toDto(p));
+            meetingNotificationService.notifyUserSelectedAsRepresentative(meetingWithLevel, u);
+        }
+        return result;
+    }
+
+    private boolean isCorporateLevel(Meeting meeting) {
+        if (meeting.getLevel() == null || meeting.getLevel().getName() == null) return false;
+        String name = meeting.getLevel().getName();
+        String normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "")
+            .trim()
+            .toUpperCase()
+            .replace('Đ', 'D')
+            .replace(' ', '_')
+            .replace('-', '_');
+        return (
+            "CORPORATE".equals(normalized) ||
+            "COMPANY".equals(normalized) ||
+            "TONG_CONG_TY".equals(normalized) ||
+            "CAP_TONG_CONG_TY".equals(normalized)
+        );
     }
 
     private void validateParticipantTarget(MeetingParticipantDTO dto) {

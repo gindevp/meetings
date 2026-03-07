@@ -2,6 +2,7 @@ package com.gindevp.meeting.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.gindevp.meeting.domain.enumeration.AttendanceStatus;
+import com.gindevp.meeting.domain.enumeration.ConfirmationStatus;
 import com.gindevp.meeting.domain.enumeration.ParticipantRole;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -36,6 +37,11 @@ public class MeetingParticipant implements Serializable {
     @Column(name = "attendance", nullable = false)
     private AttendanceStatus attendance;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "confirmation_status", nullable = false)
+    private ConfirmationStatus confirmationStatus = ConfirmationStatus.PENDING;
+
     @Column(name = "absent_reason")
     private String absentReason;
 
@@ -61,6 +67,7 @@ public class MeetingParticipant implements Serializable {
             "room",
             "requester",
             "host",
+            "secretary",
         },
         allowSetters = true
     )
@@ -118,6 +125,19 @@ public class MeetingParticipant implements Serializable {
 
     public void setAttendance(AttendanceStatus attendance) {
         this.attendance = attendance;
+    }
+
+    public ConfirmationStatus getConfirmationStatus() {
+        return this.confirmationStatus;
+    }
+
+    public MeetingParticipant confirmationStatus(ConfirmationStatus confirmationStatus) {
+        this.setConfirmationStatus(confirmationStatus);
+        return this;
+    }
+
+    public void setConfirmationStatus(ConfirmationStatus confirmationStatus) {
+        this.confirmationStatus = confirmationStatus;
     }
 
     public String getAbsentReason() {

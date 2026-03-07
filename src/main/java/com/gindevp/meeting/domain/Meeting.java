@@ -121,6 +121,9 @@ public class Meeting implements Serializable {
     @NotNull
     private User host;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User secretary;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -566,6 +569,19 @@ public class Meeting implements Serializable {
 
     public Meeting host(User user) {
         this.setHost(user);
+        return this;
+    }
+
+    public User getSecretary() {
+        return this.secretary;
+    }
+
+    public void setSecretary(User secretary) {
+        this.secretary = secretary;
+    }
+
+    public Meeting secretary(User secretary) {
+        this.setSecretary(secretary);
         return this;
     }
 

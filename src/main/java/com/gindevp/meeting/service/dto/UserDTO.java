@@ -23,6 +23,8 @@ public class UserDTO implements Serializable {
 
     private Long departmentId;
 
+    private String position;
+
     public UserDTO() {
         // Empty constructor needed for Jackson.
     }
@@ -34,6 +36,7 @@ public class UserDTO implements Serializable {
         this.lastName = user.getLastName();
         this.email = user.getEmail();
         this.departmentId = user.getDepartment() != null ? user.getDepartment().getId() : null;
+        this.position = user.getPosition();
     }
 
     public Long getId() {
@@ -82,6 +85,14 @@ public class UserDTO implements Serializable {
 
     public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
 
     @Override

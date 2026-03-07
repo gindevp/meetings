@@ -72,6 +72,7 @@ public class MeetingTask implements Serializable {
             "room",
             "requester",
             "host",
+            "secretary",
         },
         allowSetters = true
     )

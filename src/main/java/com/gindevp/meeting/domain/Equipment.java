@@ -30,6 +30,14 @@ public class Equipment implements Serializable {
     @Column(name = "description")
     private String description;
 
+    @NotNull
+    @Min(value = 0)
+    @Column(name = "total_quantity", nullable = false)
+    private Integer totalQuantity = 999;
+
+    @Column(name = "equipment_type", length = 100)
+    private String equipmentType;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -82,6 +90,32 @@ public class Equipment implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Integer getTotalQuantity() {
+        return this.totalQuantity;
+    }
+
+    public Equipment totalQuantity(Integer totalQuantity) {
+        this.setTotalQuantity(totalQuantity);
+        return this;
+    }
+
+    public void setTotalQuantity(Integer totalQuantity) {
+        this.totalQuantity = totalQuantity;
+    }
+
+    public String getEquipmentType() {
+        return this.equipmentType;
+    }
+
+    public Equipment equipmentType(String equipmentType) {
+        this.setEquipmentType(equipmentType);
+        return this;
+    }
+
+    public void setEquipmentType(String equipmentType) {
+        this.equipmentType = equipmentType;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here

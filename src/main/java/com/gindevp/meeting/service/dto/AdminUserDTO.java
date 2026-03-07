@@ -53,6 +53,9 @@ public class AdminUserDTO implements Serializable {
 
     private Long departmentId;
 
+    @Size(max = 100)
+    private String position;
+
     public AdminUserDTO() {
         // Empty constructor needed for Jackson.
     }
@@ -72,6 +75,7 @@ public class AdminUserDTO implements Serializable {
         this.lastModifiedDate = user.getLastModifiedDate();
         this.authorities = user.getAuthorities().stream().map(Authority::getName).collect(Collectors.toSet());
         this.departmentId = user.getDepartment() != null ? user.getDepartment().getId() : null;
+        this.position = user.getPosition();
     }
 
     public Long getId() {
@@ -184,6 +188,14 @@ public class AdminUserDTO implements Serializable {
 
     public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
 
     // prettier-ignore

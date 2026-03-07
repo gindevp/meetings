@@ -59,6 +59,7 @@ public class Incident implements Serializable {
             "room",
             "requester",
             "host",
+            "secretary",
         },
         allowSetters = true
     )

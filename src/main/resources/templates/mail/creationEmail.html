@@ -1,20 +1,79 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}" lang="vi">
   <head>
-    <title th:text="#{email.activation.title}">JHipster creation</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <link rel="icon" th:href="@{|${baseUrl}/favicon.ico|}" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="#{email.activation.title}">Tài khoản đã được tạo</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 8px 8px 0 0;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      .content {
+        background: #f8fafc;
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+      }
+      .message {
+        margin: 16px 0;
+      }
+      .btn {
+        display: inline-block;
+        background: #0d9488;
+        color: white !important;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        margin-top: 16px;
+      }
+      .btn:hover {
+        background: #0f766e;
+      }
+      .footer {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #64748b;
+      }
+    </style>
   </head>
   <body>
-    <p th:text="#{email.activation.greeting(${user.login})}">Dear</p>
-    <p th:text="#{email.creation.text1}">Your JHipster account has been created, please click on the URL below to access it:</p>
-    <p>
-      <a th:with="url=(@{|${baseUrl}/account/reset/finish?key=${user.resetKey}|})" th:href="${url}" th:text="${url}">Login link</a>
-    </p>
-    <p>
-      <span th:text="#{email.activation.text2}">Regards, </span>
-      <br />
-      <em th:text="#{email.signature}">JHipster.</em>
-    </p>
+    <div class="header">
+      <h1 th:text="#{email.activation.title}">Tài khoản đã được tạo</h1>
+    </div>
+    <div class="content">
+      <p th:text="#{email.activation.greeting(${user.login})}">Xin chào,</p>
+      <div class="message">
+        <p th:text="#{email.creation.text1}">
+          Tài khoản của bạn đã được tạo bởi quản trị viên. Vui lòng nhấn nút bên dưới để đặt mật khẩu và đăng nhập:
+        </p>
+      </div>
+      <p>
+        <a th:with="url=(@{|${baseUrl}/forgot-password?key=${user.resetKey}|})" th:href="${url}" class="btn">Đặt mật khẩu</a>
+      </p>
+      <div class="footer">
+        <span th:text="#{email.activation.text2}">Trân trọng,</span><br />
+        <em th:text="#{email.signature}">Hệ thống Quản lý cuộc họp</em>
+      </div>
+    </div>
   </body>
 </html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}" lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${title}">Thông báo cuộc họp</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 8px 8px 0 0;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      .content {
+        background: #f8fafc;
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+      }
+      .message {
+        margin: 16px 0;
+      }
+      .btn {
+        display: inline-block;
+        background: #2563eb;
+        color: white !important;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        margin-top: 16px;
+      }
+      .btn:hover {
+        background: #1d4ed8;
+      }
+      .footer {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1 th:text="${title}">Thông báo cuộc họp</h1>
+    </div>
+    <div class="content">
+      <p th:if="${user != null}">Xin chào <span th:text="${user.firstName != null ? user.firstName : user.login}">Bạn</span>,</p>
+      <div class="message">
+        <p th:text="${message}">Nội dung thông báo</p>
+      </div>
+      <p th:if="${linkUrl != null and !linkUrl.isEmpty()}">
+        <a th:href="@{|${baseUrl}${linkUrl}|}" class="btn">Xem chi tiết</a>
+      </p>
+      <div class="footer">
+        <span>Trân trọng,</span><br />
+        <em>Hệ thống Quản lý cuộc họp</em>
+      </div>
+    </div>
+  </body>
+</html>

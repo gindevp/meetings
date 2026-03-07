@@ -1,6 +1,15 @@
 package com.gindevp.meeting.web.rest;
 
+import com.gindevp.meeting.domain.Authority;
+import com.gindevp.meeting.domain.Meeting;
+import com.gindevp.meeting.domain.MeetingTask;
+import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.repository.MeetingDocumentRepository;
+import com.gindevp.meeting.repository.MeetingParticipantRepository;
+import com.gindevp.meeting.repository.MeetingRepository;
+import com.gindevp.meeting.repository.MeetingTaskRepository;
+import com.gindevp.meeting.repository.UserRepository;
+import com.gindevp.meeting.security.SecurityUtils;
 import com.gindevp.meeting.service.MeetingDocumentService;
 import com.gindevp.meeting.service.dto.MeetingDocumentDTO;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
@@ -14,6 +23,8 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tech.jhipster.web.util.HeaderUtil;
@@ -37,9 +48,28 @@ public class MeetingDocumentResource {
 
     private final MeetingDocumentRepository meetingDocumentRepository;
 
-    public MeetingDocumentResource(MeetingDocumentService meetingDocumentService, MeetingDocumentRepository meetingDocumentRepository) {
+    private final MeetingRepository meetingRepository;
+
+    private final UserRepository userRepository;
+
+    private final MeetingTaskRepository meetingTaskRepository;
+
+    private final MeetingParticipantRepository meetingParticipantRepository;
+
+    public MeetingDocumentResource(
+        MeetingDocumentService meetingDocumentService,
+        MeetingDocumentRepository meetingDocumentRepository,
+        MeetingRepository meetingRepository,
+        UserRepository userRepository,
+        MeetingTaskRepository meetingTaskRepository,
+        MeetingParticipantRepository meetingParticipantRepository
+    ) {
         this.meetingDocumentService = meetingDocumentService;
         this.meetingDocumentRepository = meetingDocumentRepository;
+        this.meetingRepository = meetingRepository;
+        this.userRepository = userRepository;
+        this.meetingTaskRepository = meetingTaskRepository;
+        this.meetingParticipantRepository = meetingParticipantRepository;
     }
 
     /**
@@ -56,6 +86,7 @@ public class MeetingDocumentResource {
         if (meetingDocumentDTO.getId() != null) {
             throw new BadRequestAlertException("A new meetingDocument cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        ensureCanManageMeetingDocument(meetingDocumentDTO);
         meetingDocumentDTO = meetingDocumentService.save(meetingDocumentDTO);
         return ResponseEntity.created(new URI("/api/meeting-documents/" + meetingDocumentDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, meetingDocumentDTO.getId().toString()))
@@ -88,6 +119,8 @@ public class MeetingDocumentResource {
         if (!meetingDocumentRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
         }
+
+        ensureCanManageMeetingDocument(meetingDocumentDTO);
 
         meetingDocumentDTO = meetingDocumentService.update(meetingDocumentDTO);
         return ResponseEntity.ok()
@@ -155,7 +188,44 @@ public class MeetingDocumentResource {
     public ResponseEntity<MeetingDocumentDTO> getMeetingDocument(@PathVariable("id") Long id) {
         LOG.debug("REST request to get MeetingDocument : {}", id);
         Optional<MeetingDocumentDTO> meetingDocumentDTO = meetingDocumentService.findOne(id);
-        return ResponseUtil.wrapOrNotFound(meetingDocumentDTO);
+        if (meetingDocumentDTO.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        MeetingDocumentDTO doc = meetingDocumentDTO.get();
+        if (doc.getMeeting() != null && doc.getMeeting().getId() != null) {
+            ensureCanViewMeetingDocument(doc.getMeeting().getId());
+        }
+        return ResponseEntity.ok().body(doc);
+    }
+
+    /**
+     * {@code GET  /meeting-documents/:id/download} : download file of the meetingDocument.
+     *
+     * @param id the id of the meetingDocumentDTO.
+     * @return the file content with Content-Disposition attachment.
+     */
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadMeetingDocument(@PathVariable("id") Long id) {
+        LOG.debug("REST request to download MeetingDocument : {}", id);
+        Optional<MeetingDocumentDTO> meetingDocumentDTO = meetingDocumentService.findOne(id);
+        if (meetingDocumentDTO.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        MeetingDocumentDTO doc = meetingDocumentDTO.get();
+        if (doc.getMeeting() == null || doc.getMeeting().getId() == null) {
+            throw new BadRequestAlertException("Document has no meeting", ENTITY_NAME, "nomeeting");
+        }
+        ensureCanViewMeetingDocument(doc.getMeeting().getId());
+        byte[] file = doc.getFile();
+        if (file == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String filename = doc.getFileName() != null ? doc.getFileName() : "document";
+        String contentType = doc.getFileContentType() != null ? doc.getFileContentType() : "application/octet-stream";
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .contentType(MediaType.parseMediaType(contentType))
+            .body(file);
     }
 
     /**
@@ -171,5 +241,72 @@ public class MeetingDocumentResource {
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    private void ensureCanManageMeetingDocument(MeetingDocumentDTO dto) {
+        if (dto.getMeeting() == null || dto.getMeeting().getId() == null) {
+            return;
+        }
+        User user = userRepository
+            .findOneByLogin(
+                SecurityUtils.getCurrentUserLogin()
+                    .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"))
+            )
+            .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
+
+        // Task assignee can upload document for their task
+        if (dto.getTask() != null && dto.getTask().getId() != null) {
+            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithToOneRelationships(dto.getTask().getId());
+            if (taskOpt.isPresent()) {
+                MeetingTask task = taskOpt.get();
+                if (task.getAssignee() != null && task.getAssignee().getId().equals(user.getId())) {
+                    return;
+                }
+            }
+        }
+
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(dto.getMeeting().getId())
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "meetingnotfound"));
+        if (!canManageMeeting(meeting, user)) {
+            throw new BadRequestAlertException(
+                "Only requester, host, secretary or task assignee can upload documents",
+                ENTITY_NAME,
+                "forbidden"
+            );
+        }
+    }
+
+    private void ensureCanViewMeetingDocument(Long meetingId) {
+        User user = userRepository
+            .findOneWithAuthoritiesByLogin(
+                SecurityUtils.getCurrentUserLogin()
+                    .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"))
+            )
+            .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(meetingId)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "meetingnotfound"));
+        boolean canView =
+            canManageMeeting(meeting, user) ||
+            meetingParticipantRepository.countByMeetingIdAndCurrentUser(meetingId) > 0 ||
+            canViewAsDepartmentSecretary(meetingId, user);
+        if (!canView) {
+            throw new BadRequestAlertException("You do not have permission to view this document", ENTITY_NAME, "forbidden");
+        }
+    }
+
+    private boolean canViewAsDepartmentSecretary(Long meetingId, User user) {
+        if (user.getDepartment() == null || user.getDepartment().getId() == null) return false;
+        boolean isSecretary = user.getAuthorities().stream().map(Authority::getName).anyMatch("ROLE_SECRETARY"::equals);
+        if (!isSecretary) return false;
+        return meetingParticipantRepository.countByMeetingIdAndDepartmentId(meetingId, user.getDepartment().getId()) > 0;
+    }
+
+    private boolean canManageMeeting(Meeting meeting, User user) {
+        if (meeting.getRequester() != null && meeting.getRequester().getId().equals(user.getId())) return true;
+        if (meeting.getHost() != null && meeting.getHost().getId().equals(user.getId())) return true;
+        if (meeting.getSecretary() != null && meeting.getSecretary().getId().equals(user.getId())) return true;
+        return false;
     }
 }

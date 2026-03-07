@@ -25,6 +25,7 @@ public interface MeetingMapper extends EntityMapper<MeetingDTO, Meeting> {
     @Mapping(target = "room", source = "room", qualifiedByName = "roomName")
     @Mapping(target = "requester", source = "requester", qualifiedByName = "userLogin")
     @Mapping(target = "host", source = "host", qualifiedByName = "userLogin")
+    @Mapping(target = "secretary", source = "secretary", qualifiedByName = "userLogin")
     @Mapping(target = "rejectionReason", ignore = true)
     MeetingDTO toDto(Meeting s);
 

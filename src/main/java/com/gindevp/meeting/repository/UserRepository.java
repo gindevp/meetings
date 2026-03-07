@@ -7,6 +7,8 @@ import java.util.Optional;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -20,7 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findOneByEmailIgnoreCase(String email);
     Optional<User> findOneByLogin(String login);
 
-    @EntityGraph(attributePaths = "authorities")
+    @EntityGraph(attributePaths = { "authorities", "department" })
     Optional<User> findOneWithAuthoritiesByLogin(String login);
 
     @EntityGraph(attributePaths = "authorities")
@@ -29,4 +31,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findAllByIdNotNullAndActivatedIsTrue(Pageable pageable);
 
     List<User> findByDepartmentIdAndActivatedTrue(Long departmentId);
+
+    @EntityGraph(attributePaths = "authorities")
+    @Query("select u from User u join u.authorities a where a.name = 'ROLE_ADMIN' and u.activated = true")
+    List<User> findAllAdminsActivated();
+
+    @EntityGraph(attributePaths = "authorities")
+    @Query(
+        "select u from User u join u.authorities a join u.department d where a.name = 'ROLE_SECRETARY' and u.activated = true and d.id = :departmentId"
+    )
+    List<User> findSecretariesByDepartmentId(@Param("departmentId") Long departmentId);
 }

@@ -92,6 +92,10 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
     @JoinColumn(name = "department_id")
     private Department department;
 
+    @Size(max = 100)
+    @Column(name = "position", length = 100)
+    private String position;
+
     public Long getId() {
         return id;
     }
@@ -203,6 +207,14 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
 
     public void setDepartment(Department department) {
         this.department = department;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
 
     @Override

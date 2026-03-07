@@ -27,5 +27,7 @@ public interface RoomEquipmentMapper extends EntityMapper<RoomEquipmentDTO, Room
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
     @Mapping(target = "code", source = "code")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "equipmentType", source = "equipmentType")
     EquipmentDTO toDtoEquipmentCode(Equipment equipment);
 }

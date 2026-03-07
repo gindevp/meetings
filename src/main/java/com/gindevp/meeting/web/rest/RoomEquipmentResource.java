@@ -2,6 +2,7 @@ package com.gindevp.meeting.web.rest;
 
 import com.gindevp.meeting.repository.RoomEquipmentRepository;
 import com.gindevp.meeting.service.RoomEquipmentService;
+import com.gindevp.meeting.service.dto.CreateRoomEquipmentDTO;
 import com.gindevp.meeting.service.dto.RoomEquipmentDTO;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
@@ -44,19 +45,21 @@ public class RoomEquipmentResource {
 
     /**
      * {@code POST  /room-equipments} : Create a new roomEquipment.
+     * Accepts roomId and equipmentId for simpler creation.
      *
-     * @param roomEquipmentDTO the roomEquipmentDTO to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new roomEquipmentDTO, or with status {@code 400 (Bad Request)} if the roomEquipment has already an ID.
+     * @param createDTO the create DTO with roomId and equipmentId.
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new roomEquipmentDTO.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("")
-    public ResponseEntity<RoomEquipmentDTO> createRoomEquipment(@Valid @RequestBody RoomEquipmentDTO roomEquipmentDTO)
+    public ResponseEntity<RoomEquipmentDTO> createRoomEquipment(@Valid @RequestBody CreateRoomEquipmentDTO createDTO)
         throws URISyntaxException {
-        LOG.debug("REST request to save RoomEquipment : {}", roomEquipmentDTO);
-        if (roomEquipmentDTO.getId() != null) {
-            throw new BadRequestAlertException("A new roomEquipment cannot already have an ID", ENTITY_NAME, "idexists");
-        }
-        roomEquipmentDTO = roomEquipmentService.save(roomEquipmentDTO);
+        LOG.debug("REST request to save RoomEquipment : roomId={}, equipmentId={}", createDTO.getRoomId(), createDTO.getEquipmentId());
+        RoomEquipmentDTO roomEquipmentDTO = roomEquipmentService.saveFromIds(
+            createDTO.getRoomId(),
+            createDTO.getEquipmentId(),
+            createDTO.getQuantity() != null ? createDTO.getQuantity() : 1
+        );
         return ResponseEntity.created(new URI("/api/room-equipments/" + roomEquipmentDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, roomEquipmentDTO.getId().toString()))
             .body(roomEquipmentDTO);

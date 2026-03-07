@@ -1,7 +1,11 @@
 package com.gindevp.meeting.service;
 
+import com.gindevp.meeting.domain.Equipment;
+import com.gindevp.meeting.domain.Room;
 import com.gindevp.meeting.domain.RoomEquipment;
+import com.gindevp.meeting.repository.EquipmentRepository;
 import com.gindevp.meeting.repository.RoomEquipmentRepository;
+import com.gindevp.meeting.repository.RoomRepository;
 import com.gindevp.meeting.service.dto.RoomEquipmentDTO;
 import com.gindevp.meeting.service.mapper.RoomEquipmentMapper;
 import java.util.LinkedList;
@@ -28,9 +32,20 @@ public class RoomEquipmentService {
 
     private final RoomEquipmentMapper roomEquipmentMapper;
 
-    public RoomEquipmentService(RoomEquipmentRepository roomEquipmentRepository, RoomEquipmentMapper roomEquipmentMapper) {
+    private final RoomRepository roomRepository;
+
+    private final EquipmentRepository equipmentRepository;
+
+    public RoomEquipmentService(
+        RoomEquipmentRepository roomEquipmentRepository,
+        RoomEquipmentMapper roomEquipmentMapper,
+        RoomRepository roomRepository,
+        EquipmentRepository equipmentRepository
+    ) {
         this.roomEquipmentRepository = roomEquipmentRepository;
         this.roomEquipmentMapper = roomEquipmentMapper;
+        this.roomRepository = roomRepository;
+        this.equipmentRepository = equipmentRepository;
     }
 
     /**
@@ -41,7 +56,79 @@ public class RoomEquipmentService {
      */
     public RoomEquipmentDTO save(RoomEquipmentDTO roomEquipmentDTO) {
         LOG.debug("Request to save RoomEquipment : {}", roomEquipmentDTO);
-        RoomEquipment roomEquipment = roomEquipmentMapper.toEntity(roomEquipmentDTO);
+        if (roomEquipmentDTO.getRoom() == null || roomEquipmentDTO.getRoom().getId() == null) {
+            throw new IllegalArgumentException("Room is required and must have an id");
+        }
+        if (roomEquipmentDTO.getEquipment() == null || roomEquipmentDTO.getEquipment().getId() == null) {
+            throw new IllegalArgumentException("Equipment is required and must have an id");
+        }
+        Room room = roomRepository
+            .findById(roomEquipmentDTO.getRoom().getId())
+            .orElseThrow(() -> new IllegalArgumentException("Room not found: " + roomEquipmentDTO.getRoom().getId()));
+        Equipment equipment = equipmentRepository
+            .findById(roomEquipmentDTO.getEquipment().getId())
+            .orElseThrow(() -> new IllegalArgumentException("Equipment not found: " + roomEquipmentDTO.getEquipment().getId()));
+
+        RoomEquipment roomEquipment = new RoomEquipment();
+        roomEquipment.setQuantity(roomEquipmentDTO.getQuantity() != null ? roomEquipmentDTO.getQuantity() : 1);
+        roomEquipment.setRoom(room);
+        roomEquipment.setEquipment(equipment);
+
+        roomEquipment = roomEquipmentRepository.save(roomEquipment);
+        return roomEquipmentMapper.toDto(roomEquipment);
+    }
+
+    /**
+     * Save a roomEquipment from room and equipment IDs.
+     *
+     * @param roomId the room id.
+     * @param equipmentId the equipment id.
+     * @param quantity the quantity.
+     * @return the persisted DTO.
+     */
+    public RoomEquipmentDTO saveFromIds(Long roomId, Long equipmentId, Integer quantity) {
+        LOG.debug("Request to save RoomEquipment : roomId={}, equipmentId={}, quantity={}", roomId, equipmentId, quantity);
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("Room not found: " + roomId));
+        Equipment equipment = equipmentRepository
+            .findById(equipmentId)
+            .orElseThrow(() -> new IllegalArgumentException("Equipment not found: " + equipmentId));
+
+        int qty = quantity != null && quantity > 0 ? quantity : 1;
+        int totalAvailable = equipment.getTotalQuantity() != null ? equipment.getTotalQuantity() : 999;
+
+        int usedByOtherRooms = roomEquipmentRepository
+            .findAllWithToOneRelationships()
+            .stream()
+            .filter(re -> re.getEquipment().getId().equals(equipmentId) && !re.getRoom().getId().equals(roomId))
+            .mapToInt(re -> re.getQuantity() != null ? re.getQuantity() : 0)
+            .sum();
+
+        int usedByThisRoom = roomEquipmentRepository
+            .findAllWithToOneRelationships()
+            .stream()
+            .filter(re -> re.getEquipment().getId().equals(equipmentId) && re.getRoom().getId().equals(roomId))
+            .mapToInt(re -> re.getQuantity() != null ? re.getQuantity() : 0)
+            .sum();
+
+        int totalUsedAfter = usedByOtherRooms + qty;
+        if (totalUsedAfter > totalAvailable) {
+            throw new IllegalArgumentException(
+                String.format(
+                    "Thiết bị \"%s\" không đủ. Tổng có: %d, các phòng khác dùng: %d, còn lại: %d. Yêu cầu: %d.",
+                    equipment.getName(),
+                    totalAvailable,
+                    usedByOtherRooms,
+                    totalAvailable - usedByOtherRooms,
+                    qty
+                )
+            );
+        }
+
+        RoomEquipment roomEquipment = new RoomEquipment();
+        roomEquipment.setQuantity(qty);
+        roomEquipment.setRoom(room);
+        roomEquipment.setEquipment(equipment);
+
         roomEquipment = roomEquipmentRepository.save(roomEquipment);
         return roomEquipmentMapper.toDto(roomEquipment);
     }
@@ -54,9 +141,31 @@ public class RoomEquipmentService {
      */
     public RoomEquipmentDTO update(RoomEquipmentDTO roomEquipmentDTO) {
         LOG.debug("Request to update RoomEquipment : {}", roomEquipmentDTO);
-        RoomEquipment roomEquipment = roomEquipmentMapper.toEntity(roomEquipmentDTO);
-        roomEquipment = roomEquipmentRepository.save(roomEquipment);
-        return roomEquipmentMapper.toDto(roomEquipment);
+        if (roomEquipmentDTO.getId() == null) {
+            throw new IllegalArgumentException("RoomEquipment id is required for update");
+        }
+        RoomEquipment existing = roomEquipmentRepository
+            .findById(roomEquipmentDTO.getId())
+            .orElseThrow(() -> new IllegalArgumentException("RoomEquipment not found: " + roomEquipmentDTO.getId()));
+
+        if (roomEquipmentDTO.getQuantity() != null) {
+            existing.setQuantity(roomEquipmentDTO.getQuantity());
+        }
+        if (roomEquipmentDTO.getRoom() != null && roomEquipmentDTO.getRoom().getId() != null) {
+            Room room = roomRepository
+                .findById(roomEquipmentDTO.getRoom().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Room not found: " + roomEquipmentDTO.getRoom().getId()));
+            existing.setRoom(room);
+        }
+        if (roomEquipmentDTO.getEquipment() != null && roomEquipmentDTO.getEquipment().getId() != null) {
+            Equipment equipment = equipmentRepository
+                .findById(roomEquipmentDTO.getEquipment().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Equipment not found: " + roomEquipmentDTO.getEquipment().getId()));
+            existing.setEquipment(equipment);
+        }
+
+        existing = roomEquipmentRepository.save(existing);
+        return roomEquipmentMapper.toDto(existing);
     }
 
     /**
@@ -87,7 +196,11 @@ public class RoomEquipmentService {
     @Transactional(readOnly = true)
     public List<RoomEquipmentDTO> findAll() {
         LOG.debug("Request to get all RoomEquipments");
-        return roomEquipmentRepository.findAll().stream().map(roomEquipmentMapper::toDto).collect(Collectors.toCollection(LinkedList::new));
+        return roomEquipmentRepository
+            .findAllWithToOneRelationships()
+            .stream()
+            .map(roomEquipmentMapper::toDto)
+            .collect(Collectors.toCollection(LinkedList::new));
     }
 
     /**
