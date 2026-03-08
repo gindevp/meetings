@@ -191,7 +191,11 @@ public class MeetingWorkflowService {
             throw new BadRequestAlertException("Only APPROVED meetings can be completed", "meeting", "invalidState");
         }
         meeting.setStatus(MeetingStatus.COMPLETED);
-        return meetingMapper.toDto(meetingRepository.save(meeting));
+        Meeting saved = meetingRepository.saveAndFlush(meeting);
+        meetingRepository
+            .findOneWithToOneRelationships(meetingId)
+            .ifPresent(m -> meetingNotificationService.notifyMeetingCreatedOrUpdated(m, true));
+        return meetingMapper.toDto(saved);
     }
 
     private int resolvePendingStep(Meeting meeting) {

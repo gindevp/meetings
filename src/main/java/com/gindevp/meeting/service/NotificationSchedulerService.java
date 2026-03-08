@@ -138,7 +138,11 @@ public class NotificationSchedulerService {
      */
     @EventListener(ApplicationReadyEvent.class)
     public void sendWeeklyReportOnStartup() {
-        sendWeeklyReports();
+        try {
+            sendWeeklyReports();
+        } catch (Exception e) {
+            LOG.warn("Could not send weekly report on startup: {}", e.getMessage());
+        }
     }
 
     /**
