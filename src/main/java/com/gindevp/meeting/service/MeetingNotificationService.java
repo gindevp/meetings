@@ -73,10 +73,11 @@ public class MeetingNotificationService {
     }
 
     /**
-     * Notify participants when meeting is created/updated/submitted (new or changed).
+     * Notify participants and host (chủ trì) when meeting is created/updated/submitted (new or changed).
      */
     public void notifyMeetingCreatedOrUpdated(Meeting meeting, boolean isNew) {
         List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingId(meeting.getId());
+        Set<Long> notifiedUserIds = new HashSet<>();
         String actionText = isNew ? "mới" : "thay đổi";
         String title = "Cuộc họp " + actionText + ": " + meeting.getTitle();
         String message = isNew ? "Bạn được mời tham dự cuộc họp: " + meeting.getTitle() : "Cuộc họp đã có thay đổi: " + meeting.getTitle();
@@ -89,6 +90,7 @@ public class MeetingNotificationService {
             if (!notificationSettingsService.isEmailMeetingsEnabled(user.getId())) continue;
 
             notificationService.create(user.getId(), title, message, "MEETING_INVITE", linkUrl);
+            notifiedUserIds.add(user.getId());
 
             if (user.getEmail() != null && !user.getEmail().isBlank()) {
                 String emailSubject = "Thông báo cuộc họp " + actionText + ": " + meeting.getTitle();
@@ -97,6 +99,26 @@ public class MeetingNotificationService {
                 vars.put("message", message);
                 vars.put("linkUrl", linkUrl);
                 mailService.sendMeetingNotificationEmail(user, emailSubject, "mail/meetingNotificationEmail", vars);
+            }
+        }
+
+        // Notify host (chủ trì) - cả thông báo và email - nếu chưa được thông báo qua participants
+        User host = meeting.getHost();
+        if (host != null && host.getId() != null && !notifiedUserIds.contains(host.getId())) {
+            if (notificationSettingsService.isEmailMeetingsEnabled(host.getId())) {
+                String hostMessage = isNew
+                    ? "Bạn là chủ trì cuộc họp: " + meeting.getTitle()
+                    : "Cuộc họp bạn chủ trì đã có thay đổi: " + meeting.getTitle();
+                notificationService.create(host.getId(), title, hostMessage, "MEETING_INVITE", linkUrl);
+
+                if (host.getEmail() != null && !host.getEmail().isBlank()) {
+                    String emailSubject = "Thông báo cuộc họp " + actionText + ": " + meeting.getTitle();
+                    Map<String, Object> vars = new HashMap<>();
+                    vars.put("title", title);
+                    vars.put("message", hostMessage);
+                    vars.put("linkUrl", linkUrl);
+                    mailService.sendMeetingNotificationEmail(host, emailSubject, "mail/meetingNotificationEmail", vars);
+                }
             }
         }
 
