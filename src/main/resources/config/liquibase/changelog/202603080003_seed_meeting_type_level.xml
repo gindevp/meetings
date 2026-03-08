@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Seed meeting_type: 1 khẩn, 2 nội bộ -->
+    <changeSet id="202603080003-1" author="system">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM meeting_type WHERE id IN (1, 2)</sqlCheck>
+        </preConditions>
+        <insert tableName="meeting_type">
+            <column name="id" value="1"/>
+            <column name="name" value="khẩn"/>
+            <column name="description" valueComputed="NULL"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="meeting_type">
+            <column name="id" value="2"/>
+            <column name="name" value="nội bộ"/>
+            <column name="description" valueComputed="NULL"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+    </changeSet>
+
+    <!-- Seed meeting_level: 1 CORPORATE, 2 DEPARTMENT -->
+    <changeSet id="202603080003-2" author="system">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM meeting_level WHERE id IN (1, 2)</sqlCheck>
+        </preConditions>
+        <insert tableName="meeting_level">
+            <column name="id" value="1"/>
+            <column name="name" value="CORPORATE"/>
+            <column name="description" valueComputed="NULL"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="meeting_level">
+            <column name="id" value="2"/>
+            <column name="name" value="DEPARTMENT"/>
+            <column name="description" valueComputed="NULL"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
