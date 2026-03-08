@@ -188,14 +188,14 @@ public class MeetingDocumentResource {
     public ResponseEntity<MeetingDocumentDTO> getMeetingDocument(@PathVariable("id") Long id) {
         LOG.debug("REST request to get MeetingDocument : {}", id);
         Optional<MeetingDocumentDTO> meetingDocumentDTO = meetingDocumentService.findOne(id);
-        if (meetingDocumentDTO.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        MeetingDocumentDTO doc = meetingDocumentDTO.get();
-        if (doc.getMeeting() != null && doc.getMeeting().getId() != null) {
-            ensureCanViewMeetingDocument(doc.getMeeting().getId());
-        }
-        return ResponseEntity.ok().body(doc);
+        return meetingDocumentDTO
+            .map(doc -> {
+                if (doc.getMeeting() != null && doc.getMeeting().getId() != null) {
+                    ensureCanViewMeetingDocument(doc.getMeeting().getId());
+                }
+                return ResponseEntity.ok().body(doc);
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -208,24 +208,24 @@ public class MeetingDocumentResource {
     public ResponseEntity<byte[]> downloadMeetingDocument(@PathVariable("id") Long id) {
         LOG.debug("REST request to download MeetingDocument : {}", id);
         Optional<MeetingDocumentDTO> meetingDocumentDTO = meetingDocumentService.findOne(id);
-        if (meetingDocumentDTO.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        MeetingDocumentDTO doc = meetingDocumentDTO.get();
-        if (doc.getMeeting() == null || doc.getMeeting().getId() == null) {
-            throw new BadRequestAlertException("Document has no meeting", ENTITY_NAME, "nomeeting");
-        }
-        ensureCanViewMeetingDocument(doc.getMeeting().getId());
-        byte[] file = doc.getFile();
-        if (file == null) {
-            return ResponseEntity.notFound().build();
-        }
-        String filename = doc.getFileName() != null ? doc.getFileName() : "document";
-        String contentType = doc.getFileContentType() != null ? doc.getFileContentType() : "application/octet-stream";
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-            .contentType(MediaType.parseMediaType(contentType))
-            .body(file);
+        return meetingDocumentDTO
+            .map(doc -> {
+                if (doc.getMeeting() == null || doc.getMeeting().getId() == null) {
+                    throw new BadRequestAlertException("Document has no meeting", ENTITY_NAME, "nomeeting");
+                }
+                ensureCanViewMeetingDocument(doc.getMeeting().getId());
+                byte[] file = doc.getFile();
+                if (file == null) {
+                    return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND).body((byte[]) null);
+                }
+                String filename = doc.getFileName() != null ? doc.getFileName() : "document";
+                String contentType = doc.getFileContentType() != null ? doc.getFileContentType() : "application/octet-stream";
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(file);
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -257,11 +257,8 @@ public class MeetingDocumentResource {
         // Task assignee can upload document for their task
         if (dto.getTask() != null && dto.getTask().getId() != null) {
             Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithToOneRelationships(dto.getTask().getId());
-            if (taskOpt.isPresent()) {
-                MeetingTask task = taskOpt.get();
-                if (task.getAssignee() != null && task.getAssignee().getId().equals(user.getId())) {
-                    return;
-                }
+            if (taskOpt.map(MeetingTask::getAssignee).filter(a -> a != null && a.getId().equals(user.getId())).isPresent()) {
+                return;
             }
         }
 

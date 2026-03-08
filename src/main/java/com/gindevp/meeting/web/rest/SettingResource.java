@@ -97,14 +97,17 @@ public class SettingResource {
     @DeleteMapping("/settings/{id}")
     public ResponseEntity<Void> deleteSetting(@PathVariable Long id) {
         Optional<SettingDTO> opt = settingService.findOne(id);
-        if (opt.isEmpty()) return ResponseEntity.notFound().build();
-        if (!opt.get().getUserId().equals(currentUserId())) {
-            throw new BadRequestAlertException("Forbidden", ENTITY_NAME, "forbidden");
-        }
-        settingService.delete(id);
-        return ResponseEntity.noContent()
-            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
-            .build();
+        return opt
+            .<ResponseEntity<Void>>map(setting -> {
+                if (!setting.getUserId().equals(currentUserId())) {
+                    throw new BadRequestAlertException("Forbidden", ENTITY_NAME, "forbidden");
+                }
+                settingService.delete(id);
+                return ResponseEntity.noContent()
+                    .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
+                    .build();
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 
     /** DELETE /api/settings/key/:key : Xóa cấu hình theo key (user hiện tại) */

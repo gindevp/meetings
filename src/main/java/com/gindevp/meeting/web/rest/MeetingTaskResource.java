@@ -149,11 +149,9 @@ public class MeetingTaskResource {
         } catch (IllegalArgumentException e) {
             throw new BadRequestAlertException("Invalid status", ENTITY_NAME, "invalidstatus");
         }
-        Optional<MeetingTaskDTO> existing = meetingTaskService.findOne(id);
-        if (existing.isEmpty()) {
-            throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
-        }
-        MeetingTaskDTO dto = existing.get();
+        MeetingTaskDTO dto = meetingTaskService
+            .findOne(id)
+            .orElseThrow(() -> new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound"));
         dto.setStatus(status);
         meetingTaskService.update(dto);
         return ResponseEntity.ok()

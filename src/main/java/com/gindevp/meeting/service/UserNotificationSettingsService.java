@@ -64,11 +64,21 @@ public class UserNotificationSettingsService {
         if (userId == null) return defaultValue;
         try {
             Optional<SettingDTO> opt = settingService.findByUserIdAndKey(userId, KEY_NOTIFICATIONS);
-            if (opt.isEmpty() || opt.get().getValue() == null) return defaultValue;
-            JsonNode node = objectMapper.readTree(opt.get().getValue());
-            if (node == null || !node.has(field)) return defaultValue;
-            JsonNode val = node.get(field);
-            return val != null && val.asBoolean(defaultValue);
+            return opt
+                .map(SettingDTO::getValue)
+                .filter(v -> v != null)
+                .map(v -> {
+                    try {
+                        JsonNode node = objectMapper.readTree(v);
+                        if (node == null || !node.has(field)) return defaultValue;
+                        JsonNode val = node.get(field);
+                        return val != null && val.asBoolean(defaultValue);
+                    } catch (Exception ex) {
+                        LOG.debug("Could not parse notification settings for user {}: {}", userId, ex.getMessage());
+                        return defaultValue;
+                    }
+                })
+                .orElse(defaultValue);
         } catch (Exception e) {
             LOG.debug("Could not parse notification settings for user {}: {}", userId, e.getMessage());
             return defaultValue;

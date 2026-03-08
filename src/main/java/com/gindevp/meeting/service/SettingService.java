@@ -49,15 +49,17 @@ public class SettingService {
         Optional<Setting> existing = userId == null
             ? settingRepository.findSystemSettingByKey(dto.getKey())
             : settingRepository.findByUserIdAndKey(userId, dto.getKey());
-        Setting entity;
-        if (existing.isPresent()) {
-            entity = existing.get();
-            entity.setValue(dto.getValue());
-        } else {
-            entity = settingMapper.toEntity(dto);
-            entity.setUserId(userId);
-            entity.setCategory(dto.getCategory());
-        }
+        Setting entity = existing
+            .map(e -> {
+                e.setValue(dto.getValue());
+                return e;
+            })
+            .orElseGet(() -> {
+                Setting s = settingMapper.toEntity(dto);
+                s.setUserId(userId);
+                s.setCategory(dto.getCategory());
+                return s;
+            });
         entity = settingRepository.save(entity);
         return settingMapper.toDto(entity);
     }
