@@ -53,7 +53,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: nguyenhuuquyet07092001@gmail.com
-    password: raus trhd kjuu ooox
+    password: xxxxxxxxxxx
     properties:
       mail:
         smtp:
@@ -116,4 +116,6 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  liquibase:
+    async-start: false # Chạy Liquibase đồng bộ để schema sẵn sàng trước khi app start

@@ -19,6 +19,7 @@ import com.gindevp.meeting.service.MeetingNotificationService;
 import com.gindevp.meeting.service.MeetingParticipantService;
 import com.gindevp.meeting.service.MeetingService;
 import com.gindevp.meeting.service.MeetingTaskService;
+import com.gindevp.meeting.service.MeetingValidationService;
 import com.gindevp.meeting.service.MeetingWorkflowService;
 import com.gindevp.meeting.service.dto.AgendaItemDTO;
 import com.gindevp.meeting.service.dto.DepartmentDTO;
@@ -97,6 +98,8 @@ public class MeetingResource {
 
     private final MeetingNotificationService meetingNotificationService;
 
+    private final MeetingValidationService meetingValidationService;
+
     public MeetingResource(
         MeetingService meetingService,
         UserRepository userRepository,
@@ -111,7 +114,8 @@ public class MeetingResource {
         MeetingTaskRepository meetingTaskRepository,
         MeetingDocumentRepository meetingDocumentRepository,
         DepartmentRepository departmentRepository,
-        MeetingNotificationService meetingNotificationService
+        MeetingNotificationService meetingNotificationService,
+        MeetingValidationService meetingValidationService
     ) {
         this.meetingService = meetingService;
         this.userRepository = userRepository;
@@ -127,6 +131,7 @@ public class MeetingResource {
         this.meetingDocumentRepository = meetingDocumentRepository;
         this.departmentRepository = departmentRepository;
         this.meetingNotificationService = meetingNotificationService;
+        this.meetingValidationService = meetingValidationService;
     }
 
     @PostMapping("")
@@ -188,6 +193,10 @@ public class MeetingResource {
         if (meetingDTO.getId() != null) {
             throw new BadRequestAlertException("A new meeting cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        List<Integer> agendaDurations = request.agendaItems() == null
+            ? List.of()
+            : request.agendaItems().stream().map(AgendaRequest::durationMinutes).toList();
+        meetingValidationService.validateAgendaDuration(meetingDTO.getStartTime(), meetingDTO.getEndTime(), agendaDurations);
         meetingDTO = meetingService.save(meetingDTO);
         Long meetingId = meetingDTO.getId();
 
@@ -227,6 +236,11 @@ public class MeetingResource {
         if (!canManageMeeting(meeting, currentUser())) {
             throw new BadRequestAlertException("Only requester, host or secretary can update this meeting", ENTITY_NAME, "forbidden");
         }
+
+        List<Integer> agendaDurations = request.agendaItems() == null
+            ? List.of()
+            : request.agendaItems().stream().map(AgendaRequest::durationMinutes).toList();
+        meetingValidationService.validateAgendaDuration(meetingDTO.getStartTime(), meetingDTO.getEndTime(), agendaDurations);
 
         MeetingDTO existingMeeting = meetingService
             .findOne(id)
@@ -271,7 +285,7 @@ public class MeetingResource {
         meetingRepository
             .findOneWithToOneRelationships(id)
             .ifPresent(m -> {
-                if (m.getStatus() == MeetingStatus.APPROVED || m.getStatus() == MeetingStatus.PENDING_APPROVAL) {
+                if (m.getStatus() == MeetingStatus.APPROVED) {
                     meetingNotificationService.notifyMeetingCreatedOrUpdated(m, false);
                 }
             });

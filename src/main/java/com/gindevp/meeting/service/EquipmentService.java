@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,6 +87,19 @@ public class EquipmentService {
     public Page<EquipmentDTO> findAll(Pageable pageable) {
         LOG.debug("Request to get all Equipment");
         return equipmentRepository.findAll(pageable).map(equipmentMapper::toDto);
+    }
+
+    /**
+     * Get all equipment with optional status filter.
+     */
+    @Transactional(readOnly = true)
+    public Page<EquipmentDTO> findAll(Pageable pageable, String status) {
+        LOG.debug("Request to get all Equipment with filters");
+        if (status == null || status.isBlank()) {
+            return equipmentRepository.findAll(pageable).map(equipmentMapper::toDto);
+        }
+        Specification<Equipment> spec = (root, query, cb) -> cb.equal(root.get("status"), status);
+        return equipmentRepository.findAll(spec, pageable).map(equipmentMapper::toDto);
     }
 
     /**

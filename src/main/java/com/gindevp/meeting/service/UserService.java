@@ -271,6 +271,34 @@ public class UserService {
             });
     }
 
+    /**
+     * Update current user's avatar (profile image). Stores binary data in DB.
+     */
+    public void updateAvatar(String login, byte[] imageData, String imageContentType) {
+        userRepository
+            .findOneByLogin(login)
+            .ifPresent(user -> {
+                user.setImageData(imageData);
+                user.setImageContentType(imageContentType != null ? imageContentType : "image/jpeg");
+                userRepository.save(user);
+                LOG.debug("Updated avatar for User: {}", login);
+            });
+    }
+
+    /**
+     * Remove current user's avatar.
+     */
+    public void clearAvatar(String login) {
+        userRepository
+            .findOneByLogin(login)
+            .ifPresent(user -> {
+                user.setImageData(null);
+                user.setImageContentType(null);
+                userRepository.save(user);
+                LOG.debug("Cleared avatar for User: {}", login);
+            });
+    }
+
     @Transactional
     public void changePassword(String currentClearTextPassword, String newPassword) {
         SecurityUtils.getCurrentUserLogin()

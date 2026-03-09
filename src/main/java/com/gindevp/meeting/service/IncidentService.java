@@ -74,6 +74,12 @@ public class IncidentService {
     public IncidentDTO update(IncidentDTO incidentDTO) {
         LOG.debug("Request to update Incident : {}", incidentDTO);
         Incident incident = incidentMapper.toEntity(incidentDTO);
+        if (incidentDTO.getMeeting() != null && incidentDTO.getMeeting().getId() != null) {
+            incident.setMeeting(meetingRepository.getReferenceById(incidentDTO.getMeeting().getId()));
+        }
+        if (incidentDTO.getReportedBy() != null && incidentDTO.getReportedBy().getId() != null) {
+            incident.setReportedBy(userRepository.getReferenceById(incidentDTO.getReportedBy().getId()));
+        }
         incident = incidentRepository.save(incident);
         return incidentMapper.toDto(incident);
     }
@@ -107,6 +113,25 @@ public class IncidentService {
     public List<IncidentDTO> findAll() {
         LOG.debug("Request to get all Incidents");
         return incidentRepository.findAll().stream().map(incidentMapper::toDto).collect(Collectors.toCollection(LinkedList::new));
+    }
+
+    /**
+     * Get all incidents with optional filters and pagination.
+     */
+    @Transactional(readOnly = true)
+    public Page<IncidentDTO> findAll(Pageable pageable, String status, String severity) {
+        LOG.debug("Request to get Incidents with filters");
+        String statusFilter = (status == null || status.isBlank()) ? null : status;
+        String severityFilter = (severity == null || severity.isBlank()) ? null : severity;
+        return incidentRepository
+            .findAllWithRelations(statusFilter, severityFilter, pageable)
+            .map(incident -> {
+                IncidentDTO dto = incidentMapper.toDto(incident);
+                if (dto.getMeeting() != null && incident.getMeeting() != null) {
+                    dto.getMeeting().setTitle(incident.getMeeting().getTitle());
+                }
+                return dto;
+            });
     }
 
     /**

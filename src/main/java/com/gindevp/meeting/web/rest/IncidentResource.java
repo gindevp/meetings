@@ -14,9 +14,14 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
+import tech.jhipster.web.util.PaginationUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
 /**
@@ -131,15 +136,23 @@ public class IncidentResource {
     }
 
     /**
-     * {@code GET  /incidents} : get all the incidents.
+     * {@code GET  /incidents} : get all the incidents with optional filters.
      *
-     * @param eagerload flag to eager load entities from relationships (This is applicable for many-to-many).
+     * @param pageable the pagination information.
+     * @param status optional filter by status (e.g. OPEN, IN_PROGRESS, RESOLVED).
+     * @param severity optional filter by severity (e.g. LOW, MEDIUM, HIGH).
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of incidents in body.
      */
     @GetMapping("")
-    public List<IncidentDTO> getAllIncidents(@RequestParam(name = "eagerload", required = false, defaultValue = "true") boolean eagerload) {
-        LOG.debug("REST request to get all Incidents");
-        return incidentService.findAll();
+    public ResponseEntity<List<IncidentDTO>> getAllIncidents(
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String severity
+    ) {
+        LOG.debug("REST request to get a page of Incidents with filters");
+        Page<IncidentDTO> page = incidentService.findAll(pageable, status, severity);
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
+        return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
 
     /**

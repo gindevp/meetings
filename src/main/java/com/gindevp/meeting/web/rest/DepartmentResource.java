@@ -139,12 +139,16 @@ public class DepartmentResource {
      * {@code GET  /departments} : get all the departments.
      *
      * @param pageable the pagination information.
+     * @param status optional filter by status (e.g. ACTIVE, DISABLED).
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of departments in body.
      */
     @GetMapping("")
-    public ResponseEntity<List<DepartmentDTO>> getAllDepartments(@org.springdoc.core.annotations.ParameterObject Pageable pageable) {
+    public ResponseEntity<List<DepartmentDTO>> getAllDepartments(
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable,
+        @RequestParam(required = false) String status
+    ) {
         LOG.debug("REST request to get a page of Departments");
-        Page<DepartmentDTO> page = departmentService.findAll(pageable);
+        Page<DepartmentDTO> page = departmentService.findAll(pageable, status);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }

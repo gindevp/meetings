@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- department.status already added in 202602240001_add_soft_delete.xml; only add manager_id here -->
+    <changeSet id="202603090005-department-manager-status" author="system">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="department" columnName="manager_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="department">
+            <column name="manager_id" type="bigint"/>
+        </addColumn>
+        <addForeignKeyConstraint
+            baseTableName="department"
+            baseColumnNames="manager_id"
+            constraintName="fk_department_manager_id"
+            referencedTableName="jhi_user"
+            referencedColumnNames="id"/>
+    </changeSet>
+</databaseChangeLog>

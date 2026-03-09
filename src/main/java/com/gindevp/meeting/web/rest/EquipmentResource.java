@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import tech.jhipster.web.util.HeaderUtil;
@@ -55,6 +56,7 @@ public class EquipmentResource {
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ROOM_MANAGER')")
     public ResponseEntity<EquipmentDTO> createEquipment(@Valid @RequestBody EquipmentDTO equipmentDTO) throws URISyntaxException {
         LOG.debug("REST request to save Equipment : {}", equipmentDTO);
         if (equipmentDTO.getId() != null) {
@@ -77,6 +79,7 @@ public class EquipmentResource {
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ROOM_MANAGER')")
     public ResponseEntity<EquipmentDTO> updateEquipment(
         @PathVariable(value = "id", required = false) final Long id,
         @Valid @RequestBody EquipmentDTO equipmentDTO
@@ -111,6 +114,7 @@ public class EquipmentResource {
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PatchMapping(value = "/{id}", consumes = { "application/json", "application/merge-patch+json" })
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ROOM_MANAGER')")
     public ResponseEntity<EquipmentDTO> partialUpdateEquipment(
         @PathVariable(value = "id", required = false) final Long id,
         @NotNull @RequestBody EquipmentDTO equipmentDTO
@@ -139,12 +143,16 @@ public class EquipmentResource {
      * {@code GET  /equipment} : get all the equipment.
      *
      * @param pageable the pagination information.
+     * @param status optional filter by status (ACTIVE, DISABLED).
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of equipment in body.
      */
     @GetMapping("")
-    public ResponseEntity<List<EquipmentDTO>> getAllEquipment(@org.springdoc.core.annotations.ParameterObject Pageable pageable) {
+    public ResponseEntity<List<EquipmentDTO>> getAllEquipment(
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable,
+        @RequestParam(required = false) String status
+    ) {
         LOG.debug("REST request to get a page of Equipment");
-        Page<EquipmentDTO> page = equipmentService.findAll(pageable);
+        Page<EquipmentDTO> page = equipmentService.findAll(pageable, status);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
@@ -169,6 +177,7 @@ public class EquipmentResource {
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ROOM_MANAGER')")
     public ResponseEntity<Void> deleteEquipment(@PathVariable("id") Long id) {
         LOG.debug("REST request to delete Equipment : {}", id);
         equipmentService.delete(id);

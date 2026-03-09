@@ -65,6 +65,13 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
     @Column(name = "image_url", length = 256)
     private String imageUrl;
 
+    @Lob
+    @Column(name = "image_data")
+    private byte[] imageData;
+
+    @Column(name = "image_content_type", length = 100)
+    private String imageContentType;
+
     @Size(max = 20)
     @Column(name = "activation_key", length = 20)
     @JsonIgnore
@@ -151,6 +158,22 @@ public class User extends AbstractAuditingEntity<Long> implements Serializable {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public byte[] getImageData() {
+        return imageData;
+    }
+
+    public void setImageData(byte[] imageData) {
+        this.imageData = imageData;
+    }
+
+    public String getImageContentType() {
+        return imageContentType;
+    }
+
+    public void setImageContentType(String imageContentType) {
+        this.imageContentType = imageContentType;
     }
 
     public boolean isActivated() {

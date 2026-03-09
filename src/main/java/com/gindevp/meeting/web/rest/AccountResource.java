@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tech.jhipster.config.JHipsterProperties;
 
@@ -104,6 +105,54 @@ public class AccountResource {
             .getUserWithAuthorities()
             .map(AdminUserDTO::new)
             .orElseThrow(() -> new AccountResourceException("User could not be found"));
+    }
+
+    /**
+     * GET /account/avatar : get the current user's profile image.
+     */
+    @GetMapping("/account/avatar")
+    public ResponseEntity<byte[]> getAccountAvatar() {
+        return userService
+            .getUserWithAuthorities()
+            .filter(u -> u.getImageData() != null && u.getImageData().length > 0)
+            .map(u -> {
+                String contentType = u.getImageContentType() != null ? u.getImageContentType() : "image/jpeg";
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .cacheControl(org.springframework.http.CacheControl.noStore().mustRevalidate())
+                    .body(u.getImageData());
+            })
+            .orElse(ResponseEntity.noContent().build());
+    }
+
+    /**
+     * POST /account/avatar : update the current user's profile image.
+     * Body: { "file": "base64...", "fileContentType": "image/jpeg" }
+     */
+    @PostMapping("/account/avatar")
+    public ResponseEntity<Void> saveAccountAvatar(@RequestBody java.util.Map<String, String> body) {
+        String login = SecurityUtils.getCurrentUserLogin().orElseThrow(() -> new AccountResourceException("Current user login not found"));
+        String base64 = body.get("file");
+        String fileContentType = body.get("fileContentType");
+        if (base64 == null || base64.isBlank()) {
+            throw new AccountResourceException("file (base64) is required");
+        }
+        byte[] imageData = java.util.Base64.getDecoder().decode(base64.trim());
+        if (imageData.length == 0) {
+            throw new AccountResourceException("Invalid image data");
+        }
+        userService.updateAvatar(login, imageData, fileContentType != null ? fileContentType : "image/jpeg");
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * DELETE /account/avatar : remove the current user's profile image.
+     */
+    @DeleteMapping("/account/avatar")
+    public ResponseEntity<Void> deleteAccountAvatar() {
+        String login = SecurityUtils.getCurrentUserLogin().orElseThrow(() -> new AccountResourceException("Current user login not found"));
+        userService.clearAvatar(login);
+        return ResponseEntity.noContent().build();
     }
 
     /**

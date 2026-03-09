@@ -5,6 +5,7 @@ import com.gindevp.meeting.domain.MeetingParticipant;
 import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.domain.enumeration.AttendanceStatus;
 import com.gindevp.meeting.domain.enumeration.ConfirmationStatus;
+import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import com.gindevp.meeting.domain.enumeration.ParticipantRole;
 import com.gindevp.meeting.repository.MeetingParticipantRepository;
 import com.gindevp.meeting.repository.MeetingRepository;
@@ -12,6 +13,7 @@ import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.service.dto.MeetingParticipantDTO;
 import com.gindevp.meeting.service.mapper.MeetingParticipantMapper;
 import java.text.Normalizer;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -207,6 +209,71 @@ public class MeetingParticipantService {
                 "Only host/secretary can mark others; you can only mark yourself present"
             );
         }
+        participant = meetingParticipantRepository.save(participant);
+        return meetingParticipantMapper.toDto(participant);
+    }
+
+    /**
+     * Participant requests late check-in (điểm danh bù). Only the participant themselves can request.
+     * Meeting must be APPROVED. Sets lateCheckInRequestedAt so host/secretary can approve or reject.
+     */
+    public MeetingParticipantDTO requestLateCheckIn(Long participantId, String currentUserLogin) {
+        MeetingParticipant participant = meetingParticipantRepository
+            .findByIdWithMeetingAndUser(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+        if (participant.getUser() == null || !participant.getUser().getLogin().equalsIgnoreCase(currentUserLogin)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the participant can request late check-in for themselves");
+        }
+        Meeting meeting = participant.getMeeting();
+        if (meeting == null || meeting.getStatus() == null || meeting.getStatus() != MeetingStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meeting must be approved to request late check-in");
+        }
+        if (participant.getAttendance() == AttendanceStatus.PRESENT) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Already marked present");
+        }
+        participant.setLateCheckInRequestedAt(Instant.now());
+        participant = meetingParticipantRepository.save(participant);
+        return meetingParticipantMapper.toDto(participant);
+    }
+
+    /**
+     * Host or secretary approves late check-in: set attendance to PRESENT and clear request.
+     */
+    public MeetingParticipantDTO approveLateCheckIn(Long participantId, String currentUserLogin) {
+        MeetingParticipant participant = meetingParticipantRepository
+            .findByIdWithMeetingAndUser(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+        Meeting meeting = participant.getMeeting();
+        if (meeting == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
+        boolean isHost = meeting.getHost() != null && currentUserLogin.equalsIgnoreCase(meeting.getHost().getLogin());
+        boolean isSecretary = meeting.getSecretary() != null && currentUserLogin.equalsIgnoreCase(meeting.getSecretary().getLogin());
+        if (!isHost && !isSecretary) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only host or secretary can approve late check-in");
+        }
+        if (participant.getLateCheckInRequestedAt() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No pending late check-in request");
+        }
+        participant.setAttendance(AttendanceStatus.PRESENT);
+        participant.setLateCheckInRequestedAt(null);
+        participant = meetingParticipantRepository.save(participant);
+        return meetingParticipantMapper.toDto(participant);
+    }
+
+    /**
+     * Host or secretary rejects late check-in: clear the request.
+     */
+    public MeetingParticipantDTO rejectLateCheckIn(Long participantId, String currentUserLogin) {
+        MeetingParticipant participant = meetingParticipantRepository
+            .findByIdWithMeetingAndUser(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+        Meeting meeting = participant.getMeeting();
+        if (meeting == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
+        boolean isHost = meeting.getHost() != null && currentUserLogin.equalsIgnoreCase(meeting.getHost().getLogin());
+        boolean isSecretary = meeting.getSecretary() != null && currentUserLogin.equalsIgnoreCase(meeting.getSecretary().getLogin());
+        if (!isHost && !isSecretary) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only host or secretary can reject late check-in");
+        }
+        participant.setLateCheckInRequestedAt(null);
         participant = meetingParticipantRepository.save(participant);
         return meetingParticipantMapper.toDto(participant);
     }

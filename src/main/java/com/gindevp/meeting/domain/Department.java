@@ -30,6 +30,14 @@ public class Department implements Serializable {
     @Column(name = "description")
     private String description;
 
+    @ManyToOne
+    @JoinColumn(name = "manager_id")
+    private User manager;
+
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -84,6 +92,32 @@ public class Department implements Serializable {
         this.description = description;
     }
 
+    public User getManager() {
+        return this.manager;
+    }
+
+    public void setManager(User user) {
+        this.manager = user;
+    }
+
+    public Department manager(User user) {
+        this.setManager(user);
+        return this;
+    }
+
+    public String getStatus() {
+        return this.status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Department status(String status) {
+        this.setStatus(status);
+        return this;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -111,6 +145,7 @@ public class Department implements Serializable {
             ", code='" + getCode() + "'" +
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
+            ", status='" + getStatus() + "'" +
             "}";
     }
 }

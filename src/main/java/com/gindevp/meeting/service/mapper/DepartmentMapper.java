@@ -8,4 +8,11 @@ import org.mapstruct.*;
  * Mapper for the entity {@link Department} and its DTO {@link DepartmentDTO}.
  */
 @Mapper(componentModel = "spring")
-public interface DepartmentMapper extends EntityMapper<DepartmentDTO, Department> {}
+public interface DepartmentMapper extends EntityMapper<DepartmentDTO, Department> {
+    @Mapping(target = "managerId", source = "manager.id")
+    @Mapping(target = "managerLogin", ignore = true)
+    DepartmentDTO toDto(Department entity);
+
+    @Mapping(target = "manager", ignore = true)
+    Department toEntity(DepartmentDTO dto);
+}

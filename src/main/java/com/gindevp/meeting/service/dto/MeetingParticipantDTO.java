@@ -5,6 +5,7 @@ import com.gindevp.meeting.domain.enumeration.ConfirmationStatus;
 import com.gindevp.meeting.domain.enumeration.ParticipantRole;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -28,6 +29,8 @@ public class MeetingParticipantDTO implements Serializable {
     private ConfirmationStatus confirmationStatus = ConfirmationStatus.PENDING;
 
     private String absentReason;
+
+    private Instant lateCheckInRequestedAt;
 
     private UserDTO user;
 
@@ -82,6 +85,14 @@ public class MeetingParticipantDTO implements Serializable {
 
     public void setAbsentReason(String absentReason) {
         this.absentReason = absentReason;
+    }
+
+    public Instant getLateCheckInRequestedAt() {
+        return lateCheckInRequestedAt;
+    }
+
+    public void setLateCheckInRequestedAt(Instant lateCheckInRequestedAt) {
+        this.lateCheckInRequestedAt = lateCheckInRequestedAt;
     }
 
     public UserDTO getUser() {

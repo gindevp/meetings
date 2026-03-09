@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="202603090001-room-image-description-status" author="system">
+        <addColumn tableName="room">
+            <column name="image_url" type="varchar(512)"/>
+            <column name="description" type="varchar(2000)"/>
+            <column name="status" type="varchar(20)"/>
+        </addColumn>
+        <sql>UPDATE room SET status = CASE WHEN active = 1 THEN 'ACTIVE' ELSE 'MAINTENANCE' END WHERE status IS NULL</sql>
+    </changeSet>
+</databaseChangeLog>

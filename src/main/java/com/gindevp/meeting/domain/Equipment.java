@@ -38,6 +38,10 @@ public class Equipment implements Serializable {
     @Column(name = "equipment_type", length = 100)
     private String equipmentType;
 
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -118,6 +122,19 @@ public class Equipment implements Serializable {
         this.equipmentType = equipmentType;
     }
 
+    public String getStatus() {
+        return this.status;
+    }
+
+    public Equipment status(String status) {
+        this.setStatus(status);
+        return this;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -145,6 +162,8 @@ public class Equipment implements Serializable {
             ", code='" + getCode() + "'" +
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
+            ", equipmentType='" + getEquipmentType() + "'" +
+            ", status='" + getStatus() + "'" +
             "}";
     }
 }

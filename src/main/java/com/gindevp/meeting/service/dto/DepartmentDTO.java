@@ -20,6 +20,13 @@ public class DepartmentDTO implements Serializable {
 
     private String description;
 
+    private Long managerId;
+
+    private String managerLogin;
+
+    @Size(max = 20)
+    private String status;
+
     public Long getId() {
         return id;
     }
@@ -52,6 +59,30 @@ public class DepartmentDTO implements Serializable {
         this.description = description;
     }
 
+    public Long getManagerId() {
+        return managerId;
+    }
+
+    public void setManagerId(Long managerId) {
+        this.managerId = managerId;
+    }
+
+    public String getManagerLogin() {
+        return managerLogin;
+    }
+
+    public void setManagerLogin(String managerLogin) {
+        this.managerLogin = managerLogin;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -81,6 +112,7 @@ public class DepartmentDTO implements Serializable {
             ", code='" + getCode() + "'" +
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
+            ", status='" + getStatus() + "'" +
             "}";
     }
 }

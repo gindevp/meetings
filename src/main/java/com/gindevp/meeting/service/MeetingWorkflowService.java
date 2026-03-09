@@ -64,8 +64,9 @@ public class MeetingWorkflowService {
         }
 
         Meeting saved = meetingRepository.save(meeting);
-        meetingNotificationService.notifyMeetingCreatedOrUpdated(saved, true);
-
+        if (saved.getStatus() == MeetingStatus.APPROVED) {
+            meetingNotificationService.notifyMeetingCreatedOrUpdated(saved, true);
+        }
         return meetingMapper.toDto(saved);
     }
 
@@ -95,6 +96,7 @@ public class MeetingWorkflowService {
             .findOneWithToOneRelationships(meetingId)
             .ifPresent(m -> {
                 meetingNotificationService.notifyApprovalOrRejection(m, true, null);
+                meetingNotificationService.notifyMeetingCreatedOrUpdated(m, true);
                 meetingNotificationService.notifyDepartmentSecretariesForDepartmentParticipants(m);
             });
 
@@ -147,6 +149,7 @@ public class MeetingWorkflowService {
             .findOneWithToOneRelationships(meetingId)
             .ifPresent(m -> {
                 meetingNotificationService.notifyApprovalOrRejection(m, true, null);
+                meetingNotificationService.notifyMeetingCreatedOrUpdated(m, true);
                 meetingNotificationService.notifyDepartmentSecretariesForDepartmentParticipants(m);
             });
 

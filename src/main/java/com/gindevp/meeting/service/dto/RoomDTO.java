@@ -27,6 +27,20 @@ public class RoomDTO implements Serializable {
     @NotNull
     private Boolean active;
 
+    @Size(max = 512)
+    private String imageUrl;
+
+    @Size(max = 2000)
+    private String description;
+
+    @Size(max = 20)
+    private String status;
+
+    @Size(max = 50)
+    private String roomType;
+
+    private String layoutData;
+
     public Long getId() {
         return id;
     }
@@ -75,6 +89,46 @@ public class RoomDTO implements Serializable {
         this.active = active;
     }
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getRoomType() {
+        return roomType;
+    }
+
+    public void setRoomType(String roomType) {
+        this.roomType = roomType;
+    }
+
+    public String getLayoutData() {
+        return layoutData;
+    }
+
+    public void setLayoutData(String layoutData) {
+        this.layoutData = layoutData;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -106,6 +160,11 @@ public class RoomDTO implements Serializable {
             ", location='" + getLocation() + "'" +
             ", capacity=" + getCapacity() +
             ", active='" + getActive() + "'" +
+            ", imageUrl='" + getImageUrl() + "'" +
+            ", description='" + getDescription() + "'" +
+            ", status='" + getStatus() + "'" +
+            ", roomType='" + getRoomType() + "'" +
+            ", layoutData='" + getLayoutData() + "'" +
             "}";
     }
 }

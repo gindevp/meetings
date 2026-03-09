@@ -1,5 +1,7 @@
 package com.gindevp.meeting.web.rest;
 
+import com.gindevp.meeting.domain.User;
+import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.service.UserService;
 import com.gindevp.meeting.service.dto.UserDTO;
 import java.util.*;
@@ -10,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -27,8 +31,11 @@ public class PublicUserResource {
 
     private final UserService userService;
 
-    public PublicUserResource(UserService userService) {
+    private final UserRepository userRepository;
+
+    public PublicUserResource(UserService userService, UserRepository userRepository) {
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -61,5 +68,23 @@ public class PublicUserResource {
         LOG.debug("REST request to get all users by department: {}", departmentId);
         List<UserDTO> users = userService.getUsersByDepartment(departmentId);
         return ResponseEntity.ok(users);
+    }
+
+    /**
+     * GET /users/:id/avatar : get a user's profile image (for display in lists). Authenticated users only.
+     */
+    @GetMapping("/users/{id}/avatar")
+    public ResponseEntity<byte[]> getUserAvatar(@PathVariable Long id) {
+        return userRepository
+            .findById(id)
+            .filter(u -> u.getImageData() != null && u.getImageData().length > 0)
+            .map(u -> {
+                String contentType = u.getImageContentType() != null ? u.getImageContentType() : "image/jpeg";
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .cacheControl(org.springframework.http.CacheControl.noStore().mustRevalidate())
+                    .body(u.getImageData());
+            })
+            .orElse(ResponseEntity.noContent().build());
     }
 }

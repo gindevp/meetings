@@ -7,6 +7,7 @@ import com.gindevp.meeting.domain.enumeration.ParticipantRole;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
+import java.time.Instant;
 
 /**
  * A MeetingParticipant.
@@ -44,6 +45,9 @@ public class MeetingParticipant implements Serializable {
 
     @Column(name = "absent_reason")
     private String absentReason;
+
+    @Column(name = "late_check_in_requested_at")
+    private Instant lateCheckInRequestedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
@@ -153,6 +157,19 @@ public class MeetingParticipant implements Serializable {
         this.absentReason = absentReason;
     }
 
+    public Instant getLateCheckInRequestedAt() {
+        return this.lateCheckInRequestedAt;
+    }
+
+    public MeetingParticipant lateCheckInRequestedAt(Instant lateCheckInRequestedAt) {
+        this.setLateCheckInRequestedAt(lateCheckInRequestedAt);
+        return this;
+    }
+
+    public void setLateCheckInRequestedAt(Instant lateCheckInRequestedAt) {
+        this.lateCheckInRequestedAt = lateCheckInRequestedAt;
+    }
+
     public User getUser() {
         return this.user;
     }
@@ -220,6 +237,7 @@ public class MeetingParticipant implements Serializable {
             ", isRequired='" + getIsRequired() + "'" +
             ", attendance='" + getAttendance() + "'" +
             ", absentReason='" + getAbsentReason() + "'" +
+            ", lateCheckInRequestedAt='" + getLateCheckInRequestedAt() + "'" +
             "}";
     }
 }

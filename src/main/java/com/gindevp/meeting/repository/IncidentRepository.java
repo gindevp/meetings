@@ -14,6 +14,16 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
+    @Query(
+        value = "select i from Incident i left join fetch i.reportedBy left join fetch i.meeting " +
+        "where (:status is null or :status = '' or i.status = :status) " +
+        "and (:severity is null or :severity = '' or i.severity = :severity)",
+        countQuery = "select count(i) from Incident i " +
+        "where (:status is null or :status = '' or i.status = :status) " +
+        "and (:severity is null or :severity = '' or i.severity = :severity)"
+    )
+    Page<Incident> findAllWithRelations(@Param("status") String status, @Param("severity") String severity, Pageable pageable);
+
     @Query("select incident from Incident incident where incident.reportedBy.login = ?#{authentication.name}")
     List<Incident> findByReportedByIsCurrentUser();
 

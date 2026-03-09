@@ -4,6 +4,8 @@ import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import com.gindevp.meeting.repository.MeetingRepository;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +18,29 @@ public class MeetingValidationService {
 
     public MeetingValidationService(MeetingRepository meetingRepository) {
         this.meetingRepository = meetingRepository;
+    }
+
+    /**
+     * Validate that total agenda duration (minutes) does not exceed meeting duration.
+     * Call this before create/update with details.
+     */
+    public void validateAgendaDuration(Instant startTime, Instant endTime, List<Integer> agendaDurationMinutes) {
+        if (startTime == null || endTime == null) return;
+        if (!startTime.isBefore(endTime)) return;
+        if (agendaDurationMinutes == null || agendaDurationMinutes.isEmpty()) return;
+
+        long meetingMinutes = ChronoUnit.MINUTES.between(startTime, endTime);
+        int totalAgenda = agendaDurationMinutes.stream().mapToInt(d -> d != null && d > 0 ? d : 0).sum();
+        if (totalAgenda > meetingMinutes) {
+            throw badRequest(
+                "Tổng thời lượng chương trình họp (" +
+                totalAgenda +
+                " phút) vượt quá thời lượng cuộc họp (" +
+                meetingMinutes +
+                " phút). Vui lòng điều chỉnh.",
+                "agendaDurationExceedsMeeting"
+            );
+        }
     }
 
     public void validateBeforeSubmit(Meeting meeting) {
@@ -83,6 +108,25 @@ public class MeetingValidationService {
             int participantCount = meeting.getParticipants().size();
             if (meeting.getRoom().getCapacity() != null && participantCount > meeting.getRoom().getCapacity()) {
                 throw badRequest("Room capacity is not enough", "capacityNotEnough");
+            }
+        }
+        // 4) Agenda total duration must not exceed meeting duration
+        if (meeting.getAgendaItems() != null && !meeting.getAgendaItems().isEmpty()) {
+            long meetingMinutes = ChronoUnit.MINUTES.between(meeting.getStartTime(), meeting.getEndTime());
+            int totalAgenda = meeting
+                .getAgendaItems()
+                .stream()
+                .mapToInt(a -> a.getDurationMinutes() != null && a.getDurationMinutes() > 0 ? a.getDurationMinutes() : 0)
+                .sum();
+            if (totalAgenda > meetingMinutes) {
+                throw badRequest(
+                    "Tổng thời lượng chương trình họp (" +
+                    totalAgenda +
+                    " phút) vượt quá thời lượng cuộc họp (" +
+                    meetingMinutes +
+                    " phút). Vui lòng điều chỉnh.",
+                    "agendaDurationExceedsMeeting"
+                );
             }
         }
     }

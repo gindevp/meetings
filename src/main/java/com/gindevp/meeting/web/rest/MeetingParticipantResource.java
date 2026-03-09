@@ -243,4 +243,37 @@ public class MeetingParticipantResource {
         MeetingParticipantDTO dto = meetingParticipantService.updateAttendance(id, currentLogin, attendance);
         return ResponseEntity.ok(dto);
     }
+
+    /**
+     * Participant requests late check-in (điểm danh bù). Only for themselves.
+     */
+    @PostMapping("/{id}/request-late-check-in")
+    public ResponseEntity<MeetingParticipantDTO> requestLateCheckIn(@PathVariable("id") Long id) {
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        MeetingParticipantDTO dto = meetingParticipantService.requestLateCheckIn(id, currentLogin);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Host or secretary approves late check-in.
+     */
+    @PostMapping("/{id}/approve-late-check-in")
+    public ResponseEntity<MeetingParticipantDTO> approveLateCheckIn(@PathVariable("id") Long id) {
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        MeetingParticipantDTO dto = meetingParticipantService.approveLateCheckIn(id, currentLogin);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Host or secretary rejects late check-in.
+     */
+    @PostMapping("/{id}/reject-late-check-in")
+    public ResponseEntity<MeetingParticipantDTO> rejectLateCheckIn(@PathVariable("id") Long id) {
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        MeetingParticipantDTO dto = meetingParticipantService.rejectLateCheckIn(id, currentLogin);
+        return ResponseEntity.ok(dto);
+    }
 }

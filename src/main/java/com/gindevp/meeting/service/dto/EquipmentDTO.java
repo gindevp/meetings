@@ -25,6 +25,9 @@ public class EquipmentDTO implements Serializable {
 
     private String equipmentType;
 
+    @Size(max = 20)
+    private String status;
+
     public Long getId() {
         return id;
     }
@@ -73,6 +76,14 @@ public class EquipmentDTO implements Serializable {
         this.equipmentType = equipmentType;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -102,6 +113,8 @@ public class EquipmentDTO implements Serializable {
             ", code='" + getCode() + "'" +
             ", name='" + getName() + "'" +
             ", description='" + getDescription() + "'" +
+            ", equipmentType='" + getEquipmentType() + "'" +
+            ", status='" + getStatus() + "'" +
             "}";
     }
 }

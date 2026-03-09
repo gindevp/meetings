@@ -39,6 +39,32 @@ public class Room implements Serializable {
     @Column(name = "active", nullable = false)
     private Boolean active;
 
+    @Size(max = 512)
+    @Column(name = "image_url", length = 512)
+    private String imageUrl;
+
+    @Size(max = 2000)
+    @Column(name = "description", length = 2000)
+    private String description;
+
+    @Size(max = 20)
+    @Column(name = "status", length = 20)
+    private String status;
+
+    @Column(name = "image_content_type", length = 100)
+    private String imageContentType;
+
+    @Lob
+    @Column(name = "image_data")
+    private byte[] imageData;
+
+    @Size(max = 50)
+    @Column(name = "room_type", length = 50)
+    private String roomType;
+
+    @Column(name = "layout_data", columnDefinition = "longtext")
+    private String layoutData;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -119,6 +145,97 @@ public class Room implements Serializable {
         this.active = active;
     }
 
+    public String getImageUrl() {
+        return this.imageUrl;
+    }
+
+    public Room imageUrl(String imageUrl) {
+        this.setImageUrl(imageUrl);
+        return this;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getDescription() {
+        return this.description;
+    }
+
+    public Room description(String description) {
+        this.setDescription(description);
+        return this;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getStatus() {
+        return this.status;
+    }
+
+    public Room status(String status) {
+        this.setStatus(status);
+        return this;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getImageContentType() {
+        return this.imageContentType;
+    }
+
+    public Room imageContentType(String imageContentType) {
+        this.setImageContentType(imageContentType);
+        return this;
+    }
+
+    public void setImageContentType(String imageContentType) {
+        this.imageContentType = imageContentType;
+    }
+
+    public byte[] getImageData() {
+        return this.imageData;
+    }
+
+    public Room imageData(byte[] imageData) {
+        this.setImageData(imageData);
+        return this;
+    }
+
+    public void setImageData(byte[] imageData) {
+        this.imageData = imageData;
+    }
+
+    public String getRoomType() {
+        return this.roomType;
+    }
+
+    public Room roomType(String roomType) {
+        this.setRoomType(roomType);
+        return this;
+    }
+
+    public void setRoomType(String roomType) {
+        this.roomType = roomType;
+    }
+
+    public String getLayoutData() {
+        return this.layoutData;
+    }
+
+    public Room layoutData(String layoutData) {
+        this.setLayoutData(layoutData);
+        return this;
+    }
+
+    public void setLayoutData(String layoutData) {
+        this.layoutData = layoutData;
+    }
+
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here
 
     @Override
@@ -148,6 +265,12 @@ public class Room implements Serializable {
             ", location='" + getLocation() + "'" +
             ", capacity=" + getCapacity() +
             ", active='" + getActive() + "'" +
+            ", imageUrl='" + getImageUrl() + "'" +
+            ", description='" + getDescription() + "'" +
+            ", status='" + getStatus() + "'" +
+            ", imageContentType='" + getImageContentType() + "'" +
+            ", roomType='" + getRoomType() + "'" +
+            ", layoutData='" + getLayoutData() + "'" +
             "}";
     }
 }
