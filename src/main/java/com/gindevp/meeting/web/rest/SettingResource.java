@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.ResponseUtil;
@@ -122,14 +121,12 @@ public class SettingResource {
 
     /** GET /api/admin/settings : Lấy tất cả cấu hình hệ thống (admin) */
     @GetMapping("/admin/settings")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public List<SettingDTO> getAllSystemSettings() {
         return settingService.findAllSystemSettings();
     }
 
     /** POST /api/admin/settings : Lưu cấu hình hệ thống (admin) */
     @PostMapping("/admin/settings")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<SettingDTO> saveSystemSetting(@Valid @RequestBody SettingDTO settingDTO) throws URISyntaxException {
         settingDTO.setUserId(null);
         settingDTO.setCategory("SYSTEM");
@@ -141,7 +138,6 @@ public class SettingResource {
 
     /** PUT /api/admin/settings/:id : Cập nhật cấu hình hệ thống (admin) */
     @PutMapping("/admin/settings/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<SettingDTO> updateSystemSetting(@PathVariable Long id, @Valid @RequestBody SettingDTO settingDTO)
         throws URISyntaxException {
         if (settingDTO.getId() == null) throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
@@ -156,7 +152,6 @@ public class SettingResource {
 
     /** DELETE /api/admin/settings/:id : Xóa cấu hình hệ thống (admin) */
     @DeleteMapping("/admin/settings/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> deleteSystemSetting(@PathVariable Long id) {
         settingService.delete(id);
         return ResponseEntity.noContent()

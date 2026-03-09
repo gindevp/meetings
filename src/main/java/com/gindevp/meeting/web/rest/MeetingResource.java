@@ -48,7 +48,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -563,7 +562,6 @@ public class MeetingResource {
     }
 
     @PostMapping("/{id}/submit")
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> submit(@PathVariable Long id) {
         Meeting meeting = meetingRepository
             .findOneWithToOneRelationships(id)
@@ -576,21 +574,18 @@ public class MeetingResource {
     }
 
     @PostMapping("/{id}/approve-room")
-    @PreAuthorize("hasAuthority('ROLE_ROOM_MANAGER')")
     public ResponseEntity<MeetingDTO> approveRoom(@PathVariable Long id) {
         User approver = currentUser();
         return ResponseEntity.ok(meetingWorkflowService.approveRoom(id, approver));
     }
 
     @PostMapping("/{id}/approve-unit")
-    @PreAuthorize("hasAuthority('ROLE_UNIT_MANAGER')")
     public ResponseEntity<MeetingDTO> approveUnit(@PathVariable Long id) {
         User approver = currentUser();
         return ResponseEntity.ok(meetingWorkflowService.approveUnit(id, approver));
     }
 
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAuthority('ROLE_ROOM_MANAGER') or hasAuthority('ROLE_UNIT_MANAGER')")
     public ResponseEntity<MeetingDTO> reject(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String reason = body.getOrDefault("reason", "");
         User approver = currentUser();
@@ -598,7 +593,6 @@ public class MeetingResource {
     }
 
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> cancel(@PathVariable Long id) {
         Meeting meeting = meetingRepository
             .findOneWithToOneRelationships(id)
@@ -611,7 +605,6 @@ public class MeetingResource {
     }
 
     @PostMapping("/{id}/complete")
-    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<MeetingDTO> complete(@PathVariable Long id) {
         Meeting meeting = meetingRepository
             .findOneWithToOneRelationships(id)
@@ -627,11 +620,12 @@ public class MeetingResource {
         String login = SecurityUtils.getCurrentUserLogin()
             .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
         return userRepository
-            .findOneByLogin(login)
+            .findOneWithAuthoritiesByLogin(login)
             .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
     }
 
     private boolean canManageMeeting(Meeting meeting, User user) {
+        if (user.getAuthorities() != null && user.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName()))) return true;
         if (meeting.getRequester() != null && meeting.getRequester().getId().equals(user.getId())) return true;
         if (meeting.getHost() != null && meeting.getHost().getId().equals(user.getId())) return true;
         if (meeting.getSecretary() != null && meeting.getSecretary().getId().equals(user.getId())) return true;

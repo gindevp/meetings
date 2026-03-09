@@ -301,6 +301,7 @@ public class MeetingDocumentResource {
     }
 
     private boolean canManageMeeting(Meeting meeting, User user) {
+        if (user.getAuthorities() != null && user.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName()))) return true;
         if (meeting.getRequester() != null && meeting.getRequester().getId().equals(user.getId())) return true;
         if (meeting.getHost() != null && meeting.getHost().getId().equals(user.getId())) return true;
         if (meeting.getSecretary() != null && meeting.getSecretary().getId().equals(user.getId())) return true;

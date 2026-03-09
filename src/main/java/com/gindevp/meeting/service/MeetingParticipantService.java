@@ -203,6 +203,8 @@ public class MeetingParticipantService {
             participant.setAttendance(attendance);
         } else if (isSelf && attendance == AttendanceStatus.PRESENT) {
             participant.setAttendance(AttendanceStatus.PRESENT);
+        } else if (isAdmin(currentUserLogin)) {
+            participant.setAttendance(attendance);
         } else {
             throw new ResponseStatusException(
                 HttpStatus.FORBIDDEN,
@@ -247,7 +249,7 @@ public class MeetingParticipantService {
         if (meeting == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
         boolean isHost = meeting.getHost() != null && currentUserLogin.equalsIgnoreCase(meeting.getHost().getLogin());
         boolean isSecretary = meeting.getSecretary() != null && currentUserLogin.equalsIgnoreCase(meeting.getSecretary().getLogin());
-        if (!isHost && !isSecretary) {
+        if (!isHost && !isSecretary && !isAdmin(currentUserLogin)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only host or secretary can approve late check-in");
         }
         if (participant.getLateCheckInRequestedAt() == null) {
@@ -270,7 +272,7 @@ public class MeetingParticipantService {
         if (meeting == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
         boolean isHost = meeting.getHost() != null && currentUserLogin.equalsIgnoreCase(meeting.getHost().getLogin());
         boolean isSecretary = meeting.getSecretary() != null && currentUserLogin.equalsIgnoreCase(meeting.getSecretary().getLogin());
-        if (!isHost && !isSecretary) {
+        if (!isHost && !isSecretary && !isAdmin(currentUserLogin)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only host or secretary can reject late check-in");
         }
         participant.setLateCheckInRequestedAt(null);
@@ -387,5 +389,12 @@ public class MeetingParticipantService {
         if (hasUser && hasDepartment) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant cannot have both user and department");
         }
+    }
+
+    private boolean isAdmin(String login) {
+        return userRepository
+            .findOneWithAuthoritiesByLogin(login)
+            .map(u -> u.getAuthorities() != null && u.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName())))
+            .orElse(false);
     }
 }
