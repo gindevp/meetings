@@ -175,6 +175,11 @@ public class MeetingWorkflowService {
         meetingApprovalRepository.save(log);
         meeting.setStatus(MeetingStatus.REJECTED);
         meetingRepository.save(meeting);
+
+        meetingRepository
+            .findOneWithToOneRelationships(meetingId)
+            .ifPresent(m -> meetingNotificationService.notifyApprovalOrRejection(m, false, reason));
+
         return meetingMapper.toDto(meeting);
     }
 

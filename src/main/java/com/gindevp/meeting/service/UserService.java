@@ -34,6 +34,9 @@ public class UserService {
 
     private static final Logger LOG = LoggerFactory.getLogger(UserService.class);
 
+    /** Mật khẩu mặc định khi tạo user / đăng ký (server cloud không gửi mail xác nhận). */
+    private static final String DEFAULT_PASSWORD = "1234";
+
     private final UserRepository userRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -113,9 +116,8 @@ public class UserService {
                 }
             });
         User newUser = new User();
-        String encryptedPassword = passwordEncoder.encode(password);
         newUser.setLogin(userDTO.getLogin().toLowerCase());
-        // new user gets initially a generated password
+        String encryptedPassword = passwordEncoder.encode(DEFAULT_PASSWORD);
         newUser.setPassword(encryptedPassword);
         newUser.setFirstName(userDTO.getFirstName());
         newUser.setLastName(userDTO.getLastName());
@@ -124,10 +126,9 @@ public class UserService {
         }
         newUser.setImageUrl(userDTO.getImageUrl());
         newUser.setLangKey(userDTO.getLangKey() != null ? userDTO.getLangKey() : Constants.DEFAULT_LANGUAGE);
-        // new user is not active
-        newUser.setActivated(false);
-        // new user gets registration key
-        newUser.setActivationKey(RandomUtil.generateActivationKey());
+        // Kích hoạt ngay, không cần mail (pass mặc định 1234)
+        newUser.setActivated(true);
+        newUser.setActivationKey(null);
         Set<Authority> authorities = new HashSet<>();
         authorityRepository.findById(AuthoritiesConstants.USER).ifPresent(authorities::add);
         newUser.setAuthorities(authorities);
@@ -156,14 +157,12 @@ public class UserService {
         }
         user.setImageUrl(userDTO.getImageUrl());
         if (userDTO.getLangKey() == null) {
-            user.setLangKey(Constants.DEFAULT_LANGUAGE); // default language
+            user.setLangKey(Constants.DEFAULT_LANGUAGE);
         } else {
             user.setLangKey(userDTO.getLangKey());
         }
-        String encryptedPassword = passwordEncoder.encode(RandomUtil.generatePassword());
+        String encryptedPassword = passwordEncoder.encode(DEFAULT_PASSWORD);
         user.setPassword(encryptedPassword);
-        user.setResetKey(RandomUtil.generateResetKey());
-        user.setResetDate(Instant.now());
         user.setActivated(true);
         if (userDTO.getAuthorities() != null) {
             Set<Authority> authorities = userDTO

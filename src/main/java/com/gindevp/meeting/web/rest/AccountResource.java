@@ -66,8 +66,9 @@ public class AccountResource {
         if (isPasswordLengthInvalid(managedUserVM.getPassword())) {
             throw new InvalidPasswordException();
         }
-        User user = userService.registerUser(managedUserVM, managedUserVM.getPassword());
-        mailService.sendActivationEmail(user);
+        // Luôn dùng pass mặc định 1234, không gửi mail kích hoạt (server cloud chặn mail)
+        User user = userService.registerUser(managedUserVM, "1234");
+        // mailService.sendActivationEmail(user); -- tắt vì không gửi được mail
     }
 
     /**

@@ -45,30 +45,72 @@ public class MeetingNotificationService {
     }
 
     /**
-     * Notify requester when meeting is approved or rejected.
+     * Notify requester (người tạo), and when rejected also host (chủ trì) and secretary (thư ký).
      */
     public void notifyApprovalOrRejection(Meeting meeting, boolean approved, String reason) {
         User requester = meeting.getRequester();
-        if (requester == null || requester.getId() == null) return;
+        if (requester != null && requester.getId() != null && notificationSettingsService.isApprovalNotifEnabled(requester.getId())) {
+            String statusText = approved ? "đã được phê duyệt" : "đã bị từ chối";
+            String title = "Cuộc họp " + meeting.getTitle() + " " + statusText;
+            String message = approved
+                ? "Cuộc họp của bạn đã được phê duyệt."
+                : "Cuộc họp của bạn đã bị từ chối." + (reason != null && !reason.isBlank() ? " Lý do: " + reason : "");
+            String linkUrl = "/plans?tab=" + (approved ? "approved" : "rejected") + "&meetingId=" + meeting.getId();
 
-        if (!notificationSettingsService.isApprovalNotifEnabled(requester.getId())) return;
+            notificationService.create(requester.getId(), title, message, "MEETING_APPROVAL", linkUrl);
 
-        String statusText = approved ? "đã được phê duyệt" : "đã bị từ chối";
+            if (requester.getEmail() != null && !requester.getEmail().isBlank()) {
+                String emailSubject = "Thông báo phê duyệt cuộc họp: " + meeting.getTitle();
+                Map<String, Object> vars = new HashMap<>();
+                vars.put("title", title);
+                vars.put("message", message);
+                vars.put("linkUrl", linkUrl);
+                mailService.sendMeetingNotificationEmail(requester, emailSubject, "mail/meetingNotificationEmail", vars);
+            }
+        }
+
+        if (approved) {
+            return;
+        }
+
+        String statusText = "đã bị từ chối";
         String title = "Cuộc họp " + meeting.getTitle() + " " + statusText;
-        String message = approved
-            ? "Cuộc họp của bạn đã được phê duyệt."
-            : "Cuộc họp của bạn đã bị từ chối." + (reason != null && !reason.isBlank() ? " Lý do: " + reason : "");
-        String linkUrl = "/plans?tab=" + (approved ? "approved" : "rejected") + "&meetingId=" + meeting.getId();
+        String message = "Cuộc họp đã bị từ chối." + (reason != null && !reason.isBlank() ? " Lý do: " + reason : "");
+        String linkUrl = "/plans?tab=rejected&meetingId=" + meeting.getId();
 
-        notificationService.create(requester.getId(), title, message, "MEETING_APPROVAL", linkUrl);
+        User host = meeting.getHost();
+        if (host != null && host.getId() != null && (requester == null || !host.getId().equals(requester.getId()))) {
+            if (notificationSettingsService.isApprovalNotifEnabled(host.getId())) {
+                notificationService.create(host.getId(), title, message, "MEETING_APPROVAL", linkUrl);
+                if (host.getEmail() != null && !host.getEmail().isBlank()) {
+                    String emailSubject = "Thông báo từ chối cuộc họp: " + meeting.getTitle();
+                    Map<String, Object> vars = new HashMap<>();
+                    vars.put("title", title);
+                    vars.put("message", message);
+                    vars.put("linkUrl", linkUrl);
+                    mailService.sendMeetingNotificationEmail(host, emailSubject, "mail/meetingNotificationEmail", vars);
+                }
+            }
+        }
 
-        if (requester.getEmail() != null && !requester.getEmail().isBlank()) {
-            String emailSubject = "Thông báo phê duyệt cuộc họp: " + meeting.getTitle();
-            Map<String, Object> vars = new HashMap<>();
-            vars.put("title", title);
-            vars.put("message", message);
-            vars.put("linkUrl", linkUrl);
-            mailService.sendMeetingNotificationEmail(requester, emailSubject, "mail/meetingNotificationEmail", vars);
+        User secretary = meeting.getSecretary();
+        if (
+            secretary != null &&
+            secretary.getId() != null &&
+            (requester == null || !secretary.getId().equals(requester.getId())) &&
+            (host == null || !secretary.getId().equals(host.getId()))
+        ) {
+            if (notificationSettingsService.isApprovalNotifEnabled(secretary.getId())) {
+                notificationService.create(secretary.getId(), title, message, "MEETING_APPROVAL", linkUrl);
+                if (secretary.getEmail() != null && !secretary.getEmail().isBlank()) {
+                    String emailSubject = "Thông báo từ chối cuộc họp: " + meeting.getTitle();
+                    Map<String, Object> vars = new HashMap<>();
+                    vars.put("title", title);
+                    vars.put("message", message);
+                    vars.put("linkUrl", linkUrl);
+                    mailService.sendMeetingNotificationEmail(secretary, emailSubject, "mail/meetingNotificationEmail", vars);
+                }
+            }
         }
     }
 
