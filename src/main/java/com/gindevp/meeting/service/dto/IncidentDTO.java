@@ -30,6 +30,8 @@ public class IncidentDTO implements Serializable {
     @NotNull
     private UserDTO reportedBy;
 
+    private UserDTO assignedTo;
+
     @NotNull
     private MeetingDTO meeting;
 
@@ -89,6 +91,14 @@ public class IncidentDTO implements Serializable {
         this.reportedBy = reportedBy;
     }
 
+    public UserDTO getAssignedTo() {
+        return assignedTo;
+    }
+
+    public void setAssignedTo(UserDTO assignedTo) {
+        this.assignedTo = assignedTo;
+    }
+
     public MeetingDTO getMeeting() {
         return meeting;
     }
@@ -129,6 +139,7 @@ public class IncidentDTO implements Serializable {
             ", severity='" + getSeverity() + "'" +
             ", status='" + getStatus() + "'" +
             ", reportedBy=" + getReportedBy() +
+            ", assignedTo=" + getAssignedTo() +
             ", meeting=" + getMeeting() +
             "}";
     }

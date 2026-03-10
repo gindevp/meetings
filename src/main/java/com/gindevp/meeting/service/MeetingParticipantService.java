@@ -340,10 +340,15 @@ public class MeetingParticipantService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid users selected");
         }
 
-        meetingParticipantRepository.delete(deptParticipant);
+        // Tự động phòng ban xác nhận tham dự: set confirmationStatus = CONFIRMED cho participant phòng ban
+        deptParticipant.setConfirmationStatus(ConfirmationStatus.CONFIRMED);
+        deptParticipant.setAbsentReason(null);
+        meetingParticipantRepository.save(deptParticipant);
 
         Meeting meetingWithLevel = meetingRepository.findOneWithToOneRelationships(meeting.getId()).orElse(meeting);
         List<MeetingParticipantDTO> result = new ArrayList<>();
+        result.add(meetingParticipantMapper.toDto(deptParticipant));
+
         for (User u : selectedUsers) {
             MeetingParticipant p = new MeetingParticipant();
             p.setMeeting(meeting);

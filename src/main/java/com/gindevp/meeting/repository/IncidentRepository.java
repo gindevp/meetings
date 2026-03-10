@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
     @Query(
-        value = "select i from Incident i left join fetch i.reportedBy left join fetch i.meeting " +
+        value = "select i from Incident i left join fetch i.reportedBy left join fetch i.assignedTo left join fetch i.meeting " +
         "where (:status is null or :status = '' or i.status = :status) " +
         "and (:severity is null or :severity = '' or i.severity = :severity)",
         countQuery = "select count(i) from Incident i " +
@@ -40,14 +40,16 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     }
 
     @Query(
-        value = "select incident from Incident incident left join fetch incident.reportedBy",
+        value = "select incident from Incident incident left join fetch incident.reportedBy left join fetch incident.assignedTo",
         countQuery = "select count(incident) from Incident incident"
     )
     Page<Incident> findAllWithToOneRelationships(Pageable pageable);
 
-    @Query("select incident from Incident incident left join fetch incident.reportedBy")
+    @Query("select incident from Incident incident left join fetch incident.reportedBy left join fetch incident.assignedTo")
     List<Incident> findAllWithToOneRelationships();
 
-    @Query("select incident from Incident incident left join fetch incident.reportedBy where incident.id =:id")
+    @Query(
+        "select incident from Incident incident left join fetch incident.reportedBy left join fetch incident.assignedTo where incident.id =:id"
+    )
     Optional<Incident> findOneWithToOneRelationships(@Param("id") Long id);
 }

@@ -14,6 +14,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface IncidentMapper extends EntityMapper<IncidentDTO, Incident> {
     @Mapping(target = "reportedBy", source = "reportedBy", qualifiedByName = "userLogin")
+    @Mapping(target = "assignedTo", source = "assignedTo", qualifiedByName = "userLogin")
     @Mapping(target = "meeting", source = "meeting", qualifiedByName = "meetingId")
     IncidentDTO toDto(Incident s);
 

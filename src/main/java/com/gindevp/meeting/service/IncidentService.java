@@ -34,16 +34,20 @@ public class IncidentService {
 
     private final UserRepository userRepository;
 
+    private final NotificationService notificationService;
+
     public IncidentService(
         IncidentRepository incidentRepository,
         IncidentMapper incidentMapper,
         MeetingRepository meetingRepository,
-        UserRepository userRepository
+        UserRepository userRepository,
+        NotificationService notificationService
     ) {
         this.incidentRepository = incidentRepository;
         this.incidentMapper = incidentMapper;
         this.meetingRepository = meetingRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -61,8 +65,15 @@ public class IncidentService {
         if (incidentDTO.getReportedBy() != null && incidentDTO.getReportedBy().getId() != null) {
             incident.setReportedBy(userRepository.getReferenceById(incidentDTO.getReportedBy().getId()));
         }
+        if (incidentDTO.getAssignedTo() != null && incidentDTO.getAssignedTo().getId() != null) {
+            incident.setAssignedTo(userRepository.getReferenceById(incidentDTO.getAssignedTo().getId()));
+        } else {
+            incident.setAssignedTo(null);
+        }
         incident = incidentRepository.save(incident);
-        return incidentMapper.toDto(incident);
+        IncidentDTO dto = incidentMapper.toDto(incident);
+        notifyAssignedUserIfPresent(incident);
+        return dto;
     }
 
     /**
@@ -80,8 +91,15 @@ public class IncidentService {
         if (incidentDTO.getReportedBy() != null && incidentDTO.getReportedBy().getId() != null) {
             incident.setReportedBy(userRepository.getReferenceById(incidentDTO.getReportedBy().getId()));
         }
+        if (incidentDTO.getAssignedTo() != null && incidentDTO.getAssignedTo().getId() != null) {
+            incident.setAssignedTo(userRepository.getReferenceById(incidentDTO.getAssignedTo().getId()));
+        } else {
+            incident.setAssignedTo(null);
+        }
         incident = incidentRepository.save(incident);
-        return incidentMapper.toDto(incident);
+        IncidentDTO dto = incidentMapper.toDto(incident);
+        notifyAssignedUserIfPresent(incident);
+        return dto;
     }
 
     /**
@@ -163,5 +181,21 @@ public class IncidentService {
     public void delete(Long id) {
         LOG.debug("Request to delete Incident : {}", id);
         incidentRepository.deleteById(id);
+    }
+
+    /**
+     * Notify the assigned user when an incident is created or updated with an assignee.
+     */
+    private void notifyAssignedUserIfPresent(Incident incident) {
+        if (incident == null || incident.getAssignedTo() == null || incident.getAssignedTo().getId() == null) return;
+        Long assigneeId = incident.getAssignedTo().getId();
+        String title = "Sự cố được giao cho bạn: " + incident.getTitle();
+        String message = "Bạn được chỉ định xử lý sự cố: " + incident.getTitle();
+        String linkUrl = "/incidents";
+        try {
+            notificationService.create(assigneeId, title, message, "INCIDENT_ASSIGNED", linkUrl);
+        } catch (Exception e) {
+            LOG.warn("Could not create notification for incident assignee: {}", e.getMessage());
+        }
     }
 }

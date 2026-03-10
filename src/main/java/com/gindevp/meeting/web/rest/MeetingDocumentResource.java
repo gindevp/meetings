@@ -237,10 +237,48 @@ public class MeetingDocumentResource {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMeetingDocument(@PathVariable("id") Long id) {
         LOG.debug("REST request to delete MeetingDocument : {}", id);
+        MeetingDocumentDTO doc = meetingDocumentService
+            .findOne(id)
+            .orElseThrow(() -> new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound"));
+        ensureCanDeleteMeetingDocument(doc);
         meetingDocumentService.delete(id);
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    private void ensureCanDeleteMeetingDocument(MeetingDocumentDTO doc) {
+        if (doc.getMeeting() == null || doc.getMeeting().getId() == null) {
+            throw new BadRequestAlertException("Document has no meeting", ENTITY_NAME, "nomeeting");
+        }
+        User user = userRepository
+            .findOneByLogin(
+                SecurityUtils.getCurrentUserLogin()
+                    .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"))
+            )
+            .orElseThrow(() -> new BadRequestAlertException("User not found", ENTITY_NAME, "usernotfound"));
+
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(doc.getMeeting().getId())
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "meetingnotfound"));
+
+        if (canManageMeeting(meeting, user)) {
+            return;
+        }
+        if (doc.getUploadedBy() != null && doc.getUploadedBy().getId() != null && doc.getUploadedBy().getId().equals(user.getId())) {
+            return;
+        }
+        if (doc.getTask() != null && doc.getTask().getId() != null) {
+            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithToOneRelationships(doc.getTask().getId());
+            if (taskOpt.map(MeetingTask::getAssignee).filter(a -> a != null && a.getId().equals(user.getId())).isPresent()) {
+                return;
+            }
+        }
+        throw new BadRequestAlertException(
+            "Only requester, host, secretary, document uploader or task assignee can delete this document",
+            ENTITY_NAME,
+            "forbidden"
+        );
     }
 
     private void ensureCanManageMeetingDocument(MeetingDocumentDTO dto) {

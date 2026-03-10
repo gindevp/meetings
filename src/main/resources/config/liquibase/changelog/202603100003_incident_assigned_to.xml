@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="202603100003-1" author="meeting-app">
+        <addColumn tableName="incident">
+            <column name="assigned_to_id" type="bigint">
+                <constraints nullable="true" />
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet id="202603100003-2" author="meeting-app">
+        <addForeignKeyConstraint
+            baseTableName="incident"
+            baseColumnNames="assigned_to_id"
+            constraintName="fk_incident_assigned_to_id"
+            referencedTableName="jhi_user"
+            referencedColumnNames="id" />
+    </changeSet>
+</databaseChangeLog>

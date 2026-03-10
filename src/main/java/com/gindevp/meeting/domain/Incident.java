@@ -43,6 +43,9 @@ public class Incident implements Serializable {
     @NotNull
     private User reportedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User assignedTo;
+
     @ManyToOne(optional = false)
     @NotNull
     @JsonIgnoreProperties(
@@ -155,6 +158,19 @@ public class Incident implements Serializable {
 
     public Incident reportedBy(User user) {
         this.setReportedBy(user);
+        return this;
+    }
+
+    public User getAssignedTo() {
+        return this.assignedTo;
+    }
+
+    public void setAssignedTo(User user) {
+        this.assignedTo = user;
+    }
+
+    public Incident assignedTo(User user) {
+        this.setAssignedTo(user);
         return this;
     }
 
