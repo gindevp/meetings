@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -62,12 +63,32 @@ public class ExpoPushSenderService {
             List<Map<String, Object>> messages = List.of(message);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(Map.of("messages", messages), headers);
+            // Expo Push API v2 expects the request body to be an array of messages (not wrapped in {"messages": ...})
+            HttpEntity<List<Map<String, Object>>> entity = new HttpEntity<>(messages, headers);
 
             ResponseEntity<String> res = restTemplate.exchange(EXPO_PUSH_URL, HttpMethod.POST, entity, String.class);
             if (!res.getStatusCode().is2xxSuccessful()) {
-                LOG.warn("Expo push failed for token {}: {}", to.substring(0, Math.min(30, to.length())) + "...", res.getStatusCode());
+                LOG.warn(
+                    "Expo push failed for token {}: {} body={}",
+                    to.substring(0, Math.min(30, to.length())) + "...",
+                    res.getStatusCode(),
+                    res.getBody()
+                );
+            } else {
+                LOG.debug(
+                    "Expo push sent to token {}: status={} body={}",
+                    to.substring(0, Math.min(30, to.length())) + "...",
+                    res.getStatusCode(),
+                    res.getBody()
+                );
             }
+        } catch (HttpStatusCodeException e) {
+            LOG.warn(
+                "Expo push HTTP error for token {}: status={} body={}",
+                to.substring(0, Math.min(30, to.length())) + "...",
+                e.getStatusCode(),
+                e.getResponseBodyAsString()
+            );
         } catch (Exception e) {
             LOG.warn("Expo push error for user token: {}", e.getMessage());
         }
