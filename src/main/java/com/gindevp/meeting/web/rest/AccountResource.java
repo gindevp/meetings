@@ -3,6 +3,7 @@ package com.gindevp.meeting.web.rest;
 import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.security.SecurityUtils;
+import com.gindevp.meeting.service.ExpoPushTokenService;
 import com.gindevp.meeting.service.MailService;
 import com.gindevp.meeting.service.UserService;
 import com.gindevp.meeting.service.dto.AdminUserDTO;
@@ -43,17 +44,21 @@ public class AccountResource {
 
     private final MailService mailService;
 
+    private final ExpoPushTokenService expoPushTokenService;
+
     private final JHipsterProperties jHipsterProperties;
 
     public AccountResource(
         UserRepository userRepository,
         UserService userService,
         MailService mailService,
+        ExpoPushTokenService expoPushTokenService,
         JHipsterProperties jHipsterProperties
     ) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.mailService = mailService;
+        this.expoPushTokenService = expoPushTokenService;
         this.jHipsterProperties = jHipsterProperties;
     }
 
@@ -178,6 +183,24 @@ public class AccountResource {
             userDTO.getLangKey(),
             userDTO.getImageUrl()
         );
+    }
+
+    /**
+     * POST /account/expo-push-token : Đăng ký Expo push token cho thiết bị hiện tại (app mobile).
+     * Body: { "token": "ExponentPushToken[xxx]" }
+     */
+    @PostMapping("/account/expo-push-token")
+    public ResponseEntity<Void> registerExpoPushToken(@RequestBody java.util.Map<String, String> body) {
+        String token = body != null ? body.get("token") : null;
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        Long userId = userService.getUserWithAuthorities().map(u -> u.getId()).orElse(null);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        expoPushTokenService.registerToken(userId, token.trim());
+        return ResponseEntity.ok().build();
     }
 
     /**

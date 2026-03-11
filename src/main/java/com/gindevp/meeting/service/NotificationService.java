@@ -22,10 +22,16 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final ExpoPushSenderService expoPushSenderService;
 
-    public NotificationService(NotificationRepository notificationRepository, NotificationMapper notificationMapper) {
+    public NotificationService(
+        NotificationRepository notificationRepository,
+        NotificationMapper notificationMapper,
+        ExpoPushSenderService expoPushSenderService
+    ) {
         this.notificationRepository = notificationRepository;
         this.notificationMapper = notificationMapper;
+        this.expoPushSenderService = expoPushSenderService;
     }
 
     public NotificationDTO create(Long userId, String title, String message, String type, String linkUrl) {
@@ -38,7 +44,18 @@ public class NotificationService {
         n.setLinkUrl(linkUrl);
         n.setCreatedDate(Instant.now());
         n = notificationRepository.save(n);
-        return notificationMapper.toDto(n);
+        NotificationDTO dto = notificationMapper.toDto(n);
+        // Gửi push tới app mobile (Expo) nếu user đã đăng ký token
+        try {
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            data.put("notificationId", n.getId());
+            if (type != null) data.put("type", type);
+            if (linkUrl != null) data.put("linkUrl", linkUrl);
+            expoPushSenderService.sendToUser(userId, title, message, data);
+        } catch (Exception e) {
+            LOG.debug("Expo push failed for user {}: {}", userId, e.getMessage());
+        }
+        return dto;
     }
 
     public NotificationDTO save(NotificationDTO dto) {

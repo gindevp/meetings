@@ -56,6 +56,7 @@
     <include file="config/liquibase/changelog/202603100002_user_avatar.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603100003_incident_assigned_to.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
+    <include file="config/liquibase/changelog/202603110001_added_entity_ExpoPushToken.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260307100001_added_entity_constraints_Setting.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260307100002_added_entity_constraints_Notification.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
