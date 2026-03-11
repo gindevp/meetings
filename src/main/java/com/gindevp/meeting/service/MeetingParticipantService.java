@@ -177,6 +177,13 @@ public class MeetingParticipantService {
         if (confirmationStatus == ConfirmationStatus.DECLINED && (absentReason == null || absentReason.trim().isEmpty())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Absent reason is required when declining");
         }
+        Meeting meeting = participant.getMeeting();
+        if (meeting != null && meeting.getEndTime() != null && Instant.now().isAfter(meeting.getEndTime())) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Đã quá thời gian cuộc họp, không thể xác nhận tham gia hoặc từ chối. Chỉ được yêu cầu điểm danh bù."
+            );
+        }
         participant.setConfirmationStatus(confirmationStatus);
         participant.setAbsentReason(confirmationStatus == ConfirmationStatus.DECLINED ? absentReason : null);
         participant = meetingParticipantRepository.save(participant);
@@ -194,6 +201,12 @@ public class MeetingParticipantService {
         var meeting = participant.getMeeting();
         if (meeting == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
+        }
+        if (meeting.getEndTime() != null && Instant.now().isAfter(meeting.getEndTime())) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Đã quá thời gian cuộc họp, không thể điểm danh. Chỉ được yêu cầu điểm danh bù."
+            );
         }
         boolean isHost = meeting.getHost() != null && currentUserLogin.equalsIgnoreCase(meeting.getHost().getLogin());
         boolean isSecretary = meeting.getSecretary() != null && currentUserLogin.equalsIgnoreCase(meeting.getSecretary().getLogin());

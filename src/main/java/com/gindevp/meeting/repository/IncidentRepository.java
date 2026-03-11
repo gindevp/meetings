@@ -49,7 +49,7 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findAllWithToOneRelationships();
 
     @Query(
-        "select incident from Incident incident left join fetch incident.reportedBy left join fetch incident.assignedTo where incident.id =:id"
+        "select incident from Incident incident left join fetch incident.reportedBy left join fetch incident.assignedTo left join fetch incident.meeting where incident.id = :id"
     )
     Optional<Incident> findOneWithToOneRelationships(@Param("id") Long id);
 }

@@ -170,7 +170,15 @@ public class IncidentService {
     @Transactional(readOnly = true)
     public Optional<IncidentDTO> findOne(Long id) {
         LOG.debug("Request to get Incident : {}", id);
-        return incidentRepository.findOneWithEagerRelationships(id).map(incidentMapper::toDto);
+        return incidentRepository
+            .findOneWithEagerRelationships(id)
+            .map(incident -> {
+                IncidentDTO dto = incidentMapper.toDto(incident);
+                if (dto.getMeeting() != null && incident.getMeeting() != null) {
+                    dto.getMeeting().setTitle(incident.getMeeting().getTitle());
+                }
+                return dto;
+            });
     }
 
     /**
