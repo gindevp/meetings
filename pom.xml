@@ -323,6 +323,7 @@
                     <mainClass>com.gindevp.meeting.MeetingsApp</mainClass>
                     <addResources>true</addResources>
                     <jvmArguments>-Dspring.profiles.active=dev</jvmArguments>
+                    <fork>false</fork>
                 </configuration>
             </plugin>
             <plugin>
