@@ -32,7 +32,7 @@
         <start-class>com.gindevp.meeting.MeetingsApp</start-class>
         <argLine>-Djava.security.egd=file:/dev/./urandom -Xmx1G</argLine>
         <m2e.apt.activation>jdt_apt</m2e.apt.activation>
-        <run.addResources>false</run.addResources>
+        <run.addResources>true</run.addResources>
         <spring-boot.version>${project.parent.version}</spring-boot.version>
         <archunit-junit5.version>1.4.0</archunit-junit5.version>
         <checkstyle.version>10.23.1</checkstyle.version>
@@ -319,6 +319,11 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.gindevp.meeting.MeetingsApp</mainClass>
+                    <addResources>true</addResources>
+                    <jvmArguments>-Dspring.profiles.active=dev</jvmArguments>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
