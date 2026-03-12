@@ -26,6 +26,8 @@ management:
         enabled: false
 
 spring:
+  main:
+    lazy-initialization: true
   devtools:
     restart:
       enabled: false
