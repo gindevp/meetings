@@ -2,17 +2,17 @@
 # Required Variables (Railway dashboard): SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME,
 #   SPRING_DATASOURCE_PASSWORD, JHIPSTER_SECURITY_AUTHENTICATION_JWT_BASE64_SECRET (e.g. openssl rand -base64 64)
 #
-# Nếu service Root Directory = "meetings" thì dùng:
-#   buildCommand = "mvn -B -DskipTests -Pproduction clean package"
-#   startCommand = "java -Xms256m -Xmx1024m -Dserver.port=$PORT -jar target/meetings-0.0.1-SNAPSHOT.jar"
+# Khi dùng Dockerfile (meetings/Dockerfile): jar trong image là app.jar → startCommand dùng app.jar
+# Khi dùng Nixpacks (không Dockerfile) + Root Directory = "meetings": jar tại target/meetings-0.0.1-SNAPSHOT.jar
 
 [build]
-# Repo root là meetingApp (có thư mục meetings/) → build trong meetings/
+# Nixpacks: build trong thư mục meetings khi repo root là meetingApp
 buildCommand = "cd meetings && mvn -B -DskipTests -Pproduction clean package"
 
 [deploy]
-# JAR nằm tại meetings/target/ khi build chạy từ repo root
-startCommand = "java -Xms256m -Xmx1024m -Dserver.port=$PORT -jar meetings/target/meetings-0.0.1-SNAPSHOT.jar"
+# Dockerfile build: jar nằm tại /app/app.jar → dùng app.jar
+# Nixpacks từ repo root: jar tại meetings/target/meetings-0.0.1-SNAPSHOT.jar
+startCommand = "java -Xms256m -Xmx1024m -Dserver.port=$PORT -jar app.jar"
 healthcheckPath = "/management/health"
 healthcheckTimeout = 180
 restartPolicyType = "on_failure"
