@@ -10,9 +10,9 @@
 buildCommand = "cd meetings && mvn -B -DskipTests -Pproduction clean package"
 
 [deploy]
-# Dockerfile build: jar nằm tại /app/app.jar → dùng app.jar
-# Nixpacks từ repo root: jar tại meetings/target/meetings-0.0.1-SNAPSHOT.jar
-startCommand = "java -Xms256m -Xmx1024m -Dserver.port=$PORT -jar app.jar"
+# Không truyền -Dserver.port=$PORT (Railway có thể không expand $PORT → Spring nhận chuỗi "$PORT").
+# application-prod.yml đã có server.port: ${PORT:8080} → Spring đọc biến môi trường PORT (Railway set sẵn).
+startCommand = "java -Xms256m -Xmx1024m -jar app.jar"
 healthcheckPath = "/management/health"
 healthcheckTimeout = 180
 restartPolicyType = "on_failure"
