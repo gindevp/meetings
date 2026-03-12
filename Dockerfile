@@ -21,5 +21,5 @@ ENV SPRING_PROFILES_ACTIVE=prod \
 
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java -Xms256m -Xmx512m -Dserver.port=${PORT} -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "java -Xms256m -Xmx768m -Dserver.port=${PORT} -jar /app/app.jar"]
 
