@@ -14,6 +14,8 @@ public interface SettingRepository extends JpaRepository<Setting, Long> {
 
     List<Setting> findByUserId(Long userId);
 
+    void deleteByUserId(Long userId);
+
     @Query("SELECT s FROM Setting s WHERE s.userId IS NULL AND s.category = :category")
     List<Setting> findSystemSettingsByCategory(@Param("category") String category);
 

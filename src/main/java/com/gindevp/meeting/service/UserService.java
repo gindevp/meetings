@@ -240,6 +240,8 @@ public class UserService {
         userRepository
             .findOneByLogin(login)
             .ifPresent(user -> {
+                Long userId = user.getId();
+                settingService.deleteAllByUserId(userId);
                 userRepository.delete(user);
                 LOG.debug("Deleted User: {}", user);
             });

@@ -112,6 +112,15 @@ public class SettingService {
     }
 
     /**
+     * Xóa tất cả setting của user (dùng trước khi xóa user để thỏa FK).
+     */
+    public void deleteAllByUserId(Long userId) {
+        if (userId == null) return;
+        settingRepository.deleteByUserId(userId);
+        LOG.debug("Deleted all settings for user id: {}", userId);
+    }
+
+    /**
      * Tạo cài đặt mặc định cho user mới nếu chưa có.
      * Gọi khi user đăng ký hoặc được admin tạo.
      */
