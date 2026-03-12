@@ -24,6 +24,10 @@ management:
     metrics:
       export:
         enabled: false
+  # Mail health fails in container (SMTP timeout); exclude so /management/health returns UP for Railway
+  health:
+    mail:
+      enabled: false
 
 spring:
   main:
