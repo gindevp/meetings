@@ -32,6 +32,10 @@ management:
 spring:
   main:
     lazy-initialization: true
+  # Mail not used in prod (e.g. Railway blocks SMTP). NoOpMailConfiguration provides a no-op JavaMailSender.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
   devtools:
     restart:
       enabled: false
