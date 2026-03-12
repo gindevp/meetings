@@ -944,6 +944,36 @@
                 </plugins>
             </build>
         </profile>
+        <!-- Railway / Nixpacks thường dùng -Pproduction; alias giống prod -->
+        <profile>
+            <id>production</id>
+            <properties>
+                <liquibase-plugin.password/>
+                <liquibase-plugin.url>jdbc:mysql://localhost:3306/meetings</liquibase-plugin.url>
+                <liquibase-plugin.username>root</liquibase-plugin.username>
+                <profile.test>test,testprod</profile.test>
+                <spring.profiles.active>prod${profile.api-docs}${profile.tls}${profile.e2e}${profile.no-liquibase}</spring.profiles.active>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>target/classes/static/</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>io.github.git-commit-id</groupId>
+                        <artifactId>git-commit-id-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>tls</id>
             <properties>
