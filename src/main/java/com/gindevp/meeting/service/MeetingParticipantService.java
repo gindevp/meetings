@@ -274,6 +274,9 @@ public class MeetingParticipantService {
         if (meeting == null || meeting.getStatus() == null || meeting.getStatus() != MeetingStatus.APPROVED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meeting must be approved to request late check-in");
         }
+        if (meeting.getEndTime() == null || Instant.now().isBefore(meeting.getEndTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ được yêu cầu điểm danh bù sau khi cuộc họp đã kết thúc");
+        }
         if (participant.getAttendance() == AttendanceStatus.PRESENT) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Already marked present");
         }
