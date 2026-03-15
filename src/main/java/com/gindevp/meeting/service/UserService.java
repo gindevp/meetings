@@ -327,7 +327,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDTO> getUsersByDepartment(Long departmentId) {
-        return userRepository.findByDepartmentIdAndActivatedTrue(departmentId).stream().map(UserDTO::new).toList();
+        return userRepository
+            .findByDepartmentIdAndActivatedTrueWithAuthorities(departmentId)
+            .stream()
+            .filter(u -> u.getAuthorities().stream().noneMatch(a -> "ROLE_SECRETARY".equals(a.getName())))
+            .map(UserDTO::new)
+            .toList();
     }
 
     @Transactional(readOnly = true)

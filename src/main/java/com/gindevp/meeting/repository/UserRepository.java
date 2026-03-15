@@ -33,6 +33,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByDepartmentIdAndActivatedTrue(Long departmentId);
 
     @EntityGraph(attributePaths = "authorities")
+    @Query("select u from User u where u.department.id = :departmentId and u.activated = true")
+    List<User> findByDepartmentIdAndActivatedTrueWithAuthorities(@Param("departmentId") Long departmentId);
+
+    @EntityGraph(attributePaths = "authorities")
     @Query("select u from User u join u.authorities a where a.name = 'ROLE_ADMIN' and u.activated = true")
     List<User> findAllAdminsActivated();
 
