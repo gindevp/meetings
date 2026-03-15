@@ -32,7 +32,6 @@ public class IncidentDTO implements Serializable {
 
     private UserDTO assignedTo;
 
-    @NotNull
     private MeetingDTO meeting;
 
     public Long getId() {

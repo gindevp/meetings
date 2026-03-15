@@ -46,8 +46,7 @@ public class Incident implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     private User assignedTo;
 
-    @ManyToOne(optional = false)
-    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnoreProperties(
         value = {
             "agendaItems",

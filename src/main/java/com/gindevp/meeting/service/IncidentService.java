@@ -61,6 +61,8 @@ public class IncidentService {
         Incident incident = incidentMapper.toEntity(incidentDTO);
         if (incidentDTO.getMeeting() != null && incidentDTO.getMeeting().getId() != null) {
             incident.setMeeting(meetingRepository.getReferenceById(incidentDTO.getMeeting().getId()));
+        } else {
+            incident.setMeeting(null);
         }
         if (incidentDTO.getReportedBy() != null && incidentDTO.getReportedBy().getId() != null) {
             incident.setReportedBy(userRepository.getReferenceById(incidentDTO.getReportedBy().getId()));
@@ -87,6 +89,8 @@ public class IncidentService {
         Incident incident = incidentMapper.toEntity(incidentDTO);
         if (incidentDTO.getMeeting() != null && incidentDTO.getMeeting().getId() != null) {
             incident.setMeeting(meetingRepository.getReferenceById(incidentDTO.getMeeting().getId()));
+        } else {
+            incident.setMeeting(null);
         }
         if (incidentDTO.getReportedBy() != null && incidentDTO.getReportedBy().getId() != null) {
             incident.setReportedBy(userRepository.getReferenceById(incidentDTO.getReportedBy().getId()));
