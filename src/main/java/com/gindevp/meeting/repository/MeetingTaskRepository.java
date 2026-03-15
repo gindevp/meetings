@@ -48,6 +48,9 @@ public interface MeetingTaskRepository extends JpaRepository<MeetingTask, Long> 
     )
     Optional<MeetingTask> findOneWithToOneRelationships(@Param("id") Long id);
 
+    @Query("select t from MeetingTask t left join fetch t.assignee left join fetch t.department where t.id = :id")
+    Optional<MeetingTask> findOneWithAssigneeAndDepartment(@Param("id") Long id);
+
     @Modifying
     @Query("delete from MeetingTask mt where mt.meeting.id = :meetingId")
     void deleteByMeetingId(@Param("meetingId") Long meetingId);

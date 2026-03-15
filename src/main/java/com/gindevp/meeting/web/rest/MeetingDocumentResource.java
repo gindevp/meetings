@@ -1,6 +1,7 @@
 package com.gindevp.meeting.web.rest;
 
 import com.gindevp.meeting.domain.Authority;
+import com.gindevp.meeting.domain.Department;
 import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.MeetingTask;
 import com.gindevp.meeting.domain.User;
@@ -252,7 +253,7 @@ public class MeetingDocumentResource {
             throw new BadRequestAlertException("Document has no meeting", ENTITY_NAME, "nomeeting");
         }
         User user = userRepository
-            .findOneByLogin(
+            .findOneWithAuthoritiesByLogin(
                 SecurityUtils.getCurrentUserLogin()
                     .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"))
             )
@@ -269,13 +270,28 @@ public class MeetingDocumentResource {
             return;
         }
         if (doc.getTask() != null && doc.getTask().getId() != null) {
-            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithToOneRelationships(doc.getTask().getId());
-            if (taskOpt.map(MeetingTask::getAssignee).filter(a -> a != null && a.getId().equals(user.getId())).isPresent()) {
-                return;
+            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithAssigneeAndDepartment(doc.getTask().getId());
+            if (taskOpt.isPresent()) {
+                MeetingTask task = taskOpt.get();
+                if (task.getAssignee() != null && task.getAssignee().getId().equals(user.getId())) {
+                    return;
+                }
+                Department taskDept = task.getDepartment();
+                if (
+                    taskDept != null &&
+                    taskDept.getId() != null &&
+                    user.getDepartment() != null &&
+                    taskDept.getId().equals(user.getDepartment().getId())
+                ) {
+                    Long meetingId = doc.getMeeting() != null ? doc.getMeeting().getId() : null;
+                    if (meetingId != null && meetingParticipantRepository.countByMeetingIdAndCurrentUser(meetingId) > 0) {
+                        return;
+                    }
+                }
             }
         }
         throw new BadRequestAlertException(
-            "Only requester, host, secretary, document uploader or task assignee can delete this document",
+            "Only requester, host, secretary, document uploader, task assignee or department representative can delete this document",
             ENTITY_NAME,
             "forbidden"
         );
@@ -286,7 +302,7 @@ public class MeetingDocumentResource {
             return;
         }
         User user = userRepository
-            .findOneByLogin(
+            .findOneWithAuthoritiesByLogin(
                 SecurityUtils.getCurrentUserLogin()
                     .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"))
             )
@@ -294,9 +310,25 @@ public class MeetingDocumentResource {
 
         // Task assignee can upload document for their task
         if (dto.getTask() != null && dto.getTask().getId() != null) {
-            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithToOneRelationships(dto.getTask().getId());
-            if (taskOpt.map(MeetingTask::getAssignee).filter(a -> a != null && a.getId().equals(user.getId())).isPresent()) {
-                return;
+            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithAssigneeAndDepartment(dto.getTask().getId());
+            if (taskOpt.isPresent()) {
+                MeetingTask task = taskOpt.get();
+                if (task.getAssignee() != null && task.getAssignee().getId().equals(user.getId())) {
+                    return;
+                }
+                // Đại diện phòng ban: task giao cho phòng (department) thì user thuộc phòng đó và là participant được upload
+                Department taskDept = task.getDepartment();
+                if (
+                    taskDept != null &&
+                    taskDept.getId() != null &&
+                    user.getDepartment() != null &&
+                    taskDept.getId().equals(user.getDepartment().getId())
+                ) {
+                    Long meetingId = dto.getMeeting() != null ? dto.getMeeting().getId() : null;
+                    if (meetingId != null && meetingParticipantRepository.countByMeetingIdAndCurrentUser(meetingId) > 0) {
+                        return;
+                    }
+                }
             }
         }
 
