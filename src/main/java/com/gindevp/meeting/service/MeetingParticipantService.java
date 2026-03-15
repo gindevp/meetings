@@ -2,13 +2,16 @@ package com.gindevp.meeting.service;
 
 import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.MeetingParticipant;
+import com.gindevp.meeting.domain.MeetingTask;
 import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.domain.enumeration.AttendanceStatus;
 import com.gindevp.meeting.domain.enumeration.ConfirmationStatus;
 import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import com.gindevp.meeting.domain.enumeration.ParticipantRole;
+import com.gindevp.meeting.domain.enumeration.TaskStatus;
 import com.gindevp.meeting.repository.MeetingParticipantRepository;
 import com.gindevp.meeting.repository.MeetingRepository;
+import com.gindevp.meeting.repository.MeetingTaskRepository;
 import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.service.dto.MeetingParticipantDTO;
 import com.gindevp.meeting.service.mapper.MeetingParticipantMapper;
@@ -46,19 +49,22 @@ public class MeetingParticipantService {
     private final UserRepository userRepository;
 
     private final MeetingNotificationService meetingNotificationService;
+    private final MeetingTaskRepository meetingTaskRepository;
 
     public MeetingParticipantService(
         MeetingParticipantRepository meetingParticipantRepository,
         MeetingParticipantMapper meetingParticipantMapper,
         MeetingRepository meetingRepository,
         UserRepository userRepository,
-        MeetingNotificationService meetingNotificationService
+        MeetingNotificationService meetingNotificationService,
+        MeetingTaskRepository meetingTaskRepository
     ) {
         this.meetingParticipantRepository = meetingParticipantRepository;
         this.meetingParticipantMapper = meetingParticipantMapper;
         this.meetingRepository = meetingRepository;
         this.userRepository = userRepository;
         this.meetingNotificationService = meetingNotificationService;
+        this.meetingTaskRepository = meetingTaskRepository;
     }
 
     /**
@@ -245,9 +251,9 @@ public class MeetingParticipantService {
 
         if (isHost || isSecretary) {
             participant.setAttendance(attendance);
-        } else if (isSelf && attendance == AttendanceStatus.PRESENT) {
-            participant.setAttendance(AttendanceStatus.PRESENT);
         } else if (isAdmin(currentUserLogin)) {
+            participant.setAttendance(attendance);
+        } else if (isSelf) {
             participant.setAttendance(attendance);
         } else {
             throw new ResponseStatusException(
@@ -391,6 +397,15 @@ public class MeetingParticipantService {
         deptParticipant.setConfirmationStatus(ConfirmationStatus.CONFIRMED);
         deptParticipant.setAbsentReason(null);
         meetingParticipantRepository.save(deptParticipant);
+
+        // Task của phòng ban đó chuyển từ TODO sang IN_PROGRESS khi đã có đại diện
+        List<MeetingTask> deptTasks = meetingTaskRepository.findByMeetingIdAndDepartmentId(meeting.getId(), deptId);
+        for (MeetingTask t : deptTasks) {
+            if (t.getStatus() == TaskStatus.TODO) {
+                t.setStatus(TaskStatus.IN_PROGRESS);
+                meetingTaskRepository.save(t);
+            }
+        }
 
         Meeting meetingWithLevel = meetingRepository.findOneWithToOneRelationships(meeting.getId()).orElse(meeting);
         List<MeetingParticipantDTO> result = new ArrayList<>();

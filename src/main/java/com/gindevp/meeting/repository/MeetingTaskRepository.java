@@ -59,4 +59,7 @@ public interface MeetingTaskRepository extends JpaRepository<MeetingTask, Long> 
 
     @Query("select count(t) from MeetingTask t where t.status <> com.gindevp.meeting.domain.enumeration.TaskStatus.DONE")
     long countByStatusNotDone();
+
+    @Query("select t from MeetingTask t where t.meeting.id = :meetingId and t.department.id = :departmentId")
+    List<MeetingTask> findByMeetingIdAndDepartmentId(@Param("meetingId") Long meetingId, @Param("departmentId") Long departmentId);
 }
