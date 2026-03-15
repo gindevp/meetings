@@ -270,9 +270,8 @@ public class MeetingDocumentResource {
             return;
         }
         if (doc.getTask() != null && doc.getTask().getId() != null) {
-            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithAssigneeAndDepartment(doc.getTask().getId());
-            if (taskOpt.isPresent()) {
-                MeetingTask task = taskOpt.get();
+            MeetingTask task = meetingTaskRepository.findOneWithAssigneeAndDepartment(doc.getTask().getId()).orElse(null);
+            if (task != null) {
                 if (task.getAssignee() != null && task.getAssignee().getId().equals(user.getId())) {
                     return;
                 }
@@ -310,9 +309,8 @@ public class MeetingDocumentResource {
 
         // Task assignee can upload document for their task
         if (dto.getTask() != null && dto.getTask().getId() != null) {
-            Optional<MeetingTask> taskOpt = meetingTaskRepository.findOneWithAssigneeAndDepartment(dto.getTask().getId());
-            if (taskOpt.isPresent()) {
-                MeetingTask task = taskOpt.get();
+            MeetingTask task = meetingTaskRepository.findOneWithAssigneeAndDepartment(dto.getTask().getId()).orElse(null);
+            if (task != null) {
                 if (task.getAssignee() != null && task.getAssignee().getId().equals(user.getId())) {
                     return;
                 }
