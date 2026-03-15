@@ -317,11 +317,14 @@ public class MeetingResource {
                         });
                 }
                 if (p.departmentId() != null) {
+                    Long deptId = p.departmentId();
                     departmentRepository
-                        .findById(p.departmentId())
+                        .findById(deptId)
                         .ifPresent(d -> {
                             if (d.getName() != null && !d.getName().isBlank()) allowedPresenterNames.add(d.getName().trim());
                         });
+                    // Cấp Tổng công ty: participant chỉ có departmentId → cho phép giao task cho mọi user thuộc phòng đó
+                    userRepository.findByDepartmentIdAndActivatedTrue(deptId).forEach(u -> allowedAssigneeIds.add(u.getId()));
                 }
             }
         }
