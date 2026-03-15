@@ -1,9 +1,13 @@
 package com.gindevp.meeting.web.rest;
 
+import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.enumeration.TaskStatus;
+import com.gindevp.meeting.repository.MeetingRepository;
 import com.gindevp.meeting.repository.MeetingTaskRepository;
 import com.gindevp.meeting.service.MeetingTaskService;
+import com.gindevp.meeting.service.dto.CreateMeetingTaskRequest;
 import com.gindevp.meeting.service.dto.MeetingTaskDTO;
+import com.gindevp.meeting.service.mapper.MeetingMapper;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -38,24 +42,47 @@ public class MeetingTaskResource {
 
     private final MeetingTaskRepository meetingTaskRepository;
 
-    public MeetingTaskResource(MeetingTaskService meetingTaskService, MeetingTaskRepository meetingTaskRepository) {
+    private final MeetingRepository meetingRepository;
+
+    private final MeetingMapper meetingMapper;
+
+    public MeetingTaskResource(
+        MeetingTaskService meetingTaskService,
+        MeetingTaskRepository meetingTaskRepository,
+        MeetingRepository meetingRepository,
+        MeetingMapper meetingMapper
+    ) {
         this.meetingTaskService = meetingTaskService;
         this.meetingTaskRepository = meetingTaskRepository;
+        this.meetingRepository = meetingRepository;
+        this.meetingMapper = meetingMapper;
     }
 
     /**
      * {@code POST  /meeting-tasks} : Create a new meetingTask.
+     * Accepts {@link CreateMeetingTaskRequest} with meetingId to avoid validating full MeetingDTO.
      *
-     * @param meetingTaskDTO the meetingTaskDTO to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new meetingTaskDTO, or with status {@code 400 (Bad Request)} if the meetingTask has already an ID.
+     * @param request the create request (meetingId, type, title, etc.).
+     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new meetingTaskDTO, or with status {@code 400 (Bad Request)} if the meeting is not found.
      * @throws URISyntaxException if the Location URI syntax is incorrect.
      */
     @PostMapping("")
-    public ResponseEntity<MeetingTaskDTO> createMeetingTask(@Valid @RequestBody MeetingTaskDTO meetingTaskDTO) throws URISyntaxException {
-        LOG.debug("REST request to save MeetingTask : {}", meetingTaskDTO);
-        if (meetingTaskDTO.getId() != null) {
-            throw new BadRequestAlertException("A new meetingTask cannot already have an ID", ENTITY_NAME, "idexists");
-        }
+    public ResponseEntity<MeetingTaskDTO> createMeetingTask(@Valid @RequestBody CreateMeetingTaskRequest request)
+        throws URISyntaxException {
+        LOG.debug("REST request to save MeetingTask : {}", request);
+        Meeting meeting = meetingRepository
+            .findById(request.getMeetingId())
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "meetingnotfound"));
+        MeetingTaskDTO meetingTaskDTO = new MeetingTaskDTO();
+        meetingTaskDTO.setMeeting(meetingMapper.toDto(meeting));
+        meetingTaskDTO.setType(request.getType());
+        meetingTaskDTO.setTitle(request.getTitle());
+        meetingTaskDTO.setDescription(request.getDescription() != null ? request.getDescription() : "");
+        meetingTaskDTO.setStatus(request.getStatus());
+        meetingTaskDTO.setDueAt(request.getDueAt());
+        meetingTaskDTO.setAssignee(request.getAssignee());
+        meetingTaskDTO.setAssignedBy(request.getAssignedBy());
+        meetingTaskDTO.setDepartment(request.getDepartment());
         meetingTaskDTO = meetingTaskService.save(meetingTaskDTO);
         return ResponseEntity.created(new URI("/api/meeting-tasks/" + meetingTaskDTO.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, meetingTaskDTO.getId().toString()))
