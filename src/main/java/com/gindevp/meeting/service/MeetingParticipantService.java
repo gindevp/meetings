@@ -156,6 +156,37 @@ public class MeetingParticipantService {
     }
 
     /**
+     * Xóa lời mời (participant): admin được xóa bất kỳ lúc nào; người được mời chỉ được xóa bản thân sau khi cuộc họp đã kết thúc.
+     */
+    public void deleteWithPermission(Long participantId, String currentUserLogin) {
+        MeetingParticipant participant = meetingParticipantRepository
+            .findByIdWithMeetingAndUser(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+        User currentUser = userRepository
+            .findOneWithAuthoritiesByLogin(currentUserLogin)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User not found"));
+        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName()));
+        if (isAdmin) {
+            meetingParticipantRepository.deleteById(participantId);
+            return;
+        }
+        Meeting meeting = participant.getMeeting();
+        if (participant.getUser() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ người được mời (cá nhân) mới được xóa lời mời");
+        }
+        if (!currentUserLogin.equals(participant.getUser().getLogin())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ được xóa lời mời của chính mình");
+        }
+        if (meeting == null || meeting.getEndTime() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể xóa: cuộc họp chưa có thời gian kết thúc");
+        }
+        if (Instant.now().isBefore(meeting.getEndTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chỉ được xóa lời mời sau khi cuộc họp đã kết thúc");
+        }
+        meetingParticipantRepository.deleteById(participantId);
+    }
+
+    /**
      * Participant (invitee) responds to invitation: confirm or decline attendance.
      * Only the participant's user (by login) can call this.
      */

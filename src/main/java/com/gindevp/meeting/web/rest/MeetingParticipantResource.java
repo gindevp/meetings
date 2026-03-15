@@ -168,6 +168,7 @@ public class MeetingParticipantResource {
 
     /**
      * {@code DELETE  /meeting-participants/:id} : delete the "id" meetingParticipant.
+     * Admin: xóa bất kỳ lúc nào. Người được mời: chỉ được xóa lời mời của chính mình sau khi cuộc họp đã kết thúc.
      *
      * @param id the id of the meetingParticipantDTO to delete.
      * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
@@ -175,7 +176,9 @@ public class MeetingParticipantResource {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMeetingParticipant(@PathVariable("id") Long id) {
         LOG.debug("REST request to delete MeetingParticipant : {}", id);
-        meetingParticipantService.delete(id);
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        meetingParticipantService.deleteWithPermission(id, currentLogin);
         return ResponseEntity.noContent()
             .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
             .build();
