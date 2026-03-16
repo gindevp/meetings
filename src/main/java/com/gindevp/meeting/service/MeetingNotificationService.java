@@ -164,6 +164,26 @@ public class MeetingNotificationService {
             }
         }
 
+        // Notify secretary (thư ký) nếu có, và chưa được thông báo
+        User secretary = meeting.getSecretary();
+        if (secretary != null && secretary.getId() != null && !notifiedUserIds.contains(secretary.getId())) {
+            if (notificationSettingsService.isEmailMeetingsEnabled(secretary.getId())) {
+                String secMessage = isNew
+                    ? "Bạn là thư ký cuộc họp: " + meeting.getTitle()
+                    : "Cuộc họp bạn làm thư ký đã có thay đổi: " + meeting.getTitle();
+                notificationService.create(secretary.getId(), title, secMessage, "MEETING_INVITE", linkUrl);
+
+                if (secretary.getEmail() != null && !secretary.getEmail().isBlank()) {
+                    String emailSubject = "Thông báo cuộc họp " + actionText + ": " + meeting.getTitle();
+                    Map<String, Object> vars = new HashMap<>();
+                    vars.put("title", title);
+                    vars.put("message", secMessage);
+                    vars.put("linkUrl", linkUrl);
+                    mailService.sendMeetingNotificationEmail(secretary, emailSubject, "mail/meetingNotificationEmail", vars);
+                }
+            }
+        }
+
         if (meeting.getStatus() == MeetingStatus.APPROVED && isCorporateLevel(meeting)) {
             notifyDepartmentSecretariesForDepartmentParticipants(meeting);
         }

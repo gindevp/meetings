@@ -11,6 +11,7 @@ import com.gindevp.meeting.security.AuthoritiesConstants;
 import com.gindevp.meeting.security.SecurityUtils;
 import com.gindevp.meeting.service.dto.AdminUserDTO;
 import com.gindevp.meeting.service.dto.UserDTO;
+import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -181,6 +182,7 @@ public class UserService {
         }
 
         if (userDTO.getPosition() != null) {
+            enforceUniquePositionPerDepartment(userDTO.getDepartmentId(), userDTO.getPosition(), null);
             user.setPosition(userDTO.getPosition());
         }
 
@@ -227,7 +229,10 @@ public class UserService {
                     user.setDepartment(null);
                 }
 
-                user.setPosition(userDTO.getPosition());
+                if (userDTO.getPosition() != null) {
+                    enforceUniquePositionPerDepartment(userDTO.getDepartmentId(), userDTO.getPosition(), user.getId());
+                    user.setPosition(userDTO.getPosition());
+                }
 
                 userRepository.save(user);
                 LOG.debug("Changed Information for User: {}", user);
@@ -244,6 +249,34 @@ public class UserService {
                 settingService.deleteAllByUserId(userId);
                 userRepository.delete(user);
                 LOG.debug("Deleted User: {}", user);
+            });
+    }
+
+    /**
+     * Ensure only one Trưởng phòng and one Thư ký per department.
+     */
+    private void enforceUniquePositionPerDepartment(Long departmentId, String position, Long currentUserId) {
+        if (departmentId == null || position == null) {
+            return;
+        }
+        String pos = position.trim().toLowerCase();
+        boolean isTruongPhong = pos.contains("trưởng phòng") || pos.contains("truong phong");
+        boolean isThuKy = pos.contains("thư ký") || pos.contains("thu ky");
+        if (!isTruongPhong && !isThuKy) {
+            return;
+        }
+        userRepository
+            .findByDepartmentIdAndActivatedTrue(departmentId)
+            .stream()
+            .filter(u -> currentUserId == null || !u.getId().equals(currentUserId))
+            .forEach(u -> {
+                String up = u.getPosition() != null ? u.getPosition().trim().toLowerCase() : "";
+                if (isTruongPhong && (up.contains("trưởng phòng") || up.contains("truong phong"))) {
+                    throw new BadRequestAlertException("Phòng ban đã có Trưởng phòng", "user", "duplicate_head");
+                }
+                if (isThuKy && (up.contains("thư ký") || up.contains("thu ky"))) {
+                    throw new BadRequestAlertException("Phòng ban đã có Thư ký", "user", "duplicate_secretary");
+                }
             });
     }
 

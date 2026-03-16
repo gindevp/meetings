@@ -325,7 +325,9 @@ public class MeetingDocumentResource {
                     Long meetingId = dto.getMeeting() != null ? dto.getMeeting().getId() : null;
                     boolean isDeptSecretary = user.getPosition() != null && user.getPosition().trim().toLowerCase().contains("thư ký");
                     if (
-                        isDeptSecretary && meetingId != null && meetingParticipantRepository.countByMeetingIdAndCurrentUser(meetingId) > 0
+                        isDeptSecretary &&
+                        meetingId != null &&
+                        meetingParticipantRepository.countByMeetingIdAndDepartmentId(meetingId, user.getDepartment().getId()) > 0
                     ) {
                         return;
                     }
