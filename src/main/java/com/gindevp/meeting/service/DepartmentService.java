@@ -5,6 +5,7 @@ import com.gindevp.meeting.repository.DepartmentRepository;
 import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.service.dto.DepartmentDTO;
 import com.gindevp.meeting.service.mapper.DepartmentMapper;
+import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,17 @@ public class DepartmentService {
      */
     public DepartmentDTO save(DepartmentDTO departmentDTO) {
         LOG.debug("Request to save Department : {}", departmentDTO);
+        if (isBanLanhDao(departmentDTO)) {
+            // Ensure Ban Lãnh Đạo is unique by code and name
+            departmentRepository
+                .findAll()
+                .stream()
+                .filter(d -> isBanLanhDaoDto(toDtoWithManagerLogin(d)))
+                .findAny()
+                .ifPresent(d -> {
+                    throw new BadRequestAlertException("Ban Lãnh Đạo already exists", "department", "banlanhdaoexists");
+                });
+        }
         Department department = departmentMapper.toEntity(departmentDTO);
         if (departmentDTO.getManagerId() != null) {
             department.setManager(userRepository.getReferenceById(departmentDTO.getManagerId()));
@@ -59,6 +71,19 @@ public class DepartmentService {
      */
     public DepartmentDTO update(DepartmentDTO departmentDTO) {
         LOG.debug("Request to update Department : {}", departmentDTO);
+        if (isBanLanhDao(departmentDTO)) {
+            // Do not allow renaming other departments into Ban Lãnh Đạo
+            departmentRepository
+                .findAll()
+                .stream()
+                .filter(d -> !d.getId().equals(departmentDTO.getId()))
+                .map(this::toDtoWithManagerLogin)
+                .filter(this::isBanLanhDaoDto)
+                .findAny()
+                .ifPresent(d -> {
+                    throw new BadRequestAlertException("Ban Lãnh Đạo already exists", "department", "banlanhdaoexists");
+                });
+        }
         Department department = departmentMapper.toEntity(departmentDTO);
         if (departmentDTO.getManagerId() != null) {
             department.setManager(userRepository.getReferenceById(departmentDTO.getManagerId()));
@@ -85,6 +110,17 @@ public class DepartmentService {
      */
     public Optional<DepartmentDTO> partialUpdate(DepartmentDTO departmentDTO) {
         LOG.debug("Request to partially update Department : {}", departmentDTO);
+
+        if (departmentDTO.getId() != null) {
+            departmentRepository
+                .findById(departmentDTO.getId())
+                .ifPresent(existing -> {
+                    DepartmentDTO existingDto = toDtoWithManagerLogin(existing);
+                    if (isBanLanhDaoDto(existingDto)) {
+                        throw new BadRequestAlertException("Cannot modify Ban Lãnh Đạo department", "department", "banlanhdaolocked");
+                    }
+                });
+        }
 
         return departmentRepository
             .findById(departmentDTO.getId())
@@ -145,6 +181,30 @@ public class DepartmentService {
      */
     public void delete(Long id) {
         LOG.debug("Request to delete Department : {}", id);
+        departmentRepository
+            .findById(id)
+            .ifPresent(existing -> {
+                DepartmentDTO dto = toDtoWithManagerLogin(existing);
+                if (isBanLanhDaoDto(dto)) {
+                    throw new BadRequestAlertException("Cannot delete Ban Lãnh Đạo department", "department", "banlanhdaolocked");
+                }
+            });
         departmentRepository.deleteById(id);
+    }
+
+    private boolean isBanLanhDao(DepartmentDTO dto) {
+        if (dto == null) {
+            return false;
+        }
+        return isBanLanhDaoDto(dto);
+    }
+
+    private boolean isBanLanhDaoDto(DepartmentDTO dto) {
+        if (dto == null) {
+            return false;
+        }
+        String code = dto.getCode() != null ? dto.getCode().trim().toUpperCase() : "";
+        String name = dto.getName() != null ? dto.getName().trim().toLowerCase() : "";
+        return "PB003".equals(code) || "ban lãnh đạo".equals(name) || "ban lanh dao".equals(name);
     }
 }

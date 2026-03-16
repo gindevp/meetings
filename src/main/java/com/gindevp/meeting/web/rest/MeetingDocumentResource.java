@@ -314,7 +314,7 @@ public class MeetingDocumentResource {
                 if (task.getAssignee() != null && task.getAssignee().getId().equals(user.getId())) {
                     return;
                 }
-                // Đại diện phòng ban: task giao cho phòng (department) thì user thuộc phòng đó và là participant được upload
+                // Thư ký phòng ban: task giao cho phòng (department) thì chỉ thư ký thuộc phòng đó (và là participant của cuộc họp) mới được upload
                 Department taskDept = task.getDepartment();
                 if (
                     taskDept != null &&
@@ -323,7 +323,10 @@ public class MeetingDocumentResource {
                     taskDept.getId().equals(user.getDepartment().getId())
                 ) {
                     Long meetingId = dto.getMeeting() != null ? dto.getMeeting().getId() : null;
-                    if (meetingId != null && meetingParticipantRepository.countByMeetingIdAndCurrentUser(meetingId) > 0) {
+                    boolean isDeptSecretary = user.getPosition() != null && user.getPosition().trim().toLowerCase().contains("thư ký");
+                    if (
+                        isDeptSecretary && meetingId != null && meetingParticipantRepository.countByMeetingIdAndCurrentUser(meetingId) > 0
+                    ) {
                         return;
                     }
                 }
