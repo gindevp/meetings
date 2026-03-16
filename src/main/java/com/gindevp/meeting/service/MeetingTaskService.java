@@ -1,7 +1,10 @@
 package com.gindevp.meeting.service;
 
 import com.gindevp.meeting.domain.MeetingTask;
+import com.gindevp.meeting.repository.DepartmentRepository;
+import com.gindevp.meeting.repository.MeetingRepository;
 import com.gindevp.meeting.repository.MeetingTaskRepository;
+import com.gindevp.meeting.repository.UserRepository;
 import com.gindevp.meeting.service.dto.MeetingTaskDTO;
 import com.gindevp.meeting.service.mapper.MeetingTaskMapper;
 import java.util.LinkedList;
@@ -28,13 +31,29 @@ public class MeetingTaskService {
 
     private final MeetingTaskMapper meetingTaskMapper;
 
-    public MeetingTaskService(MeetingTaskRepository meetingTaskRepository, MeetingTaskMapper meetingTaskMapper) {
+    private final MeetingRepository meetingRepository;
+
+    private final UserRepository userRepository;
+
+    private final DepartmentRepository departmentRepository;
+
+    public MeetingTaskService(
+        MeetingTaskRepository meetingTaskRepository,
+        MeetingTaskMapper meetingTaskMapper,
+        MeetingRepository meetingRepository,
+        UserRepository userRepository,
+        DepartmentRepository departmentRepository
+    ) {
         this.meetingTaskRepository = meetingTaskRepository;
         this.meetingTaskMapper = meetingTaskMapper;
+        this.meetingRepository = meetingRepository;
+        this.userRepository = userRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     /**
-     * Save a meetingTask.
+     * Save a meetingTask. Resolves ManyToOne references from repositories to avoid
+     * persisting transient entities (which can cause 500 errors).
      *
      * @param meetingTaskDTO the entity to save.
      * @return the persisted entity.
@@ -42,6 +61,18 @@ public class MeetingTaskService {
     public MeetingTaskDTO save(MeetingTaskDTO meetingTaskDTO) {
         LOG.debug("Request to save MeetingTask : {}", meetingTaskDTO);
         MeetingTask meetingTask = meetingTaskMapper.toEntity(meetingTaskDTO);
+        if (meetingTaskDTO.getMeeting() != null && meetingTaskDTO.getMeeting().getId() != null) {
+            meetingTask.setMeeting(meetingRepository.getReferenceById(meetingTaskDTO.getMeeting().getId()));
+        }
+        if (meetingTaskDTO.getAssignedBy() != null && meetingTaskDTO.getAssignedBy().getId() != null) {
+            meetingTask.setAssignedBy(userRepository.getReferenceById(meetingTaskDTO.getAssignedBy().getId()));
+        }
+        if (meetingTaskDTO.getAssignee() != null && meetingTaskDTO.getAssignee().getId() != null) {
+            meetingTask.setAssignee(userRepository.getReferenceById(meetingTaskDTO.getAssignee().getId()));
+        }
+        if (meetingTaskDTO.getDepartment() != null && meetingTaskDTO.getDepartment().getId() != null) {
+            meetingTask.setDepartment(departmentRepository.getReferenceById(meetingTaskDTO.getDepartment().getId()));
+        }
         meetingTask = meetingTaskRepository.save(meetingTask);
         return meetingTaskMapper.toDto(meetingTask);
     }

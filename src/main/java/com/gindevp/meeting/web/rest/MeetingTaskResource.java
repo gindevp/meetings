@@ -71,7 +71,7 @@ public class MeetingTaskResource {
         throws URISyntaxException {
         LOG.debug("REST request to save MeetingTask : {}", request);
         Meeting meeting = meetingRepository
-            .findById(request.getMeetingId())
+            .findOneWithToOneRelationships(request.getMeetingId())
             .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "meetingnotfound"));
         MeetingTaskDTO meetingTaskDTO = new MeetingTaskDTO();
         meetingTaskDTO.setMeeting(meetingMapper.toDto(meeting));
