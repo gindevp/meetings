@@ -49,6 +49,7 @@ public interface MeetingParticipantMapper extends EntityMapper<MeetingParticipan
     @Mapping(target = "endTime", source = "endTime")
     @Mapping(target = "level", source = "level", qualifiedByName = "levelName")
     @Mapping(target = "host", source = "host", qualifiedByName = "userLogin")
+    @Mapping(target = "secretary", source = "secretary", qualifiedByName = "userLogin")
     @Mapping(target = "organizerDepartment", source = "organizerDepartment", qualifiedByName = "departmentName")
     @Mapping(target = "requester", source = "requester", qualifiedByName = "userLogin")
     MeetingDTO toDtoMeetingId(Meeting meeting);

@@ -50,7 +50,7 @@ public interface MeetingParticipantRepository extends JpaRepository<MeetingParti
     Optional<MeetingParticipant> findByIdWithMeetingAndUser(@Param("id") Long id);
 
     @Query(
-        "select p from MeetingParticipant p left join fetch p.user left join fetch p.department left join fetch p.meeting left join fetch p.meeting.host left join fetch p.meeting.requester left join fetch p.meeting.organizerDepartment left join fetch p.meeting.level"
+        "select p from MeetingParticipant p left join fetch p.user left join fetch p.department left join fetch p.meeting left join fetch p.meeting.host left join fetch p.meeting.requester left join fetch p.meeting.secretary left join fetch p.meeting.organizerDepartment left join fetch p.meeting.level"
     )
     List<MeetingParticipant> findAllWithMeetingAndUser();
 

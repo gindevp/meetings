@@ -151,7 +151,8 @@ public class MeetingResource {
         List<AgendaRequest> agendaItems,
         List<TaskRequest> tasks,
         List<DocumentRequest> documents,
-        Boolean submitAfterCreate
+        Boolean submitAfterCreate,
+        Boolean approveAfterUpdate
     ) {}
 
     public record ParticipantRequest(Long userId, Long departmentId, String role, Boolean isRequired) {}
@@ -236,6 +237,26 @@ public class MeetingResource {
             throw new BadRequestAlertException("Only requester, host or secretary can update this meeting", ENTITY_NAME, "forbidden");
         }
 
+        User currentUser = currentUser();
+        boolean isSecretary =
+            currentUser.getAuthorities() != null &&
+            currentUser.getAuthorities().stream().anyMatch(a -> "ROLE_SECRETARY".equals(a.getName()));
+        boolean isAdmin =
+            currentUser.getAuthorities() != null && currentUser.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName()));
+        if (
+            meeting.getStatus() == MeetingStatus.PENDING_APPROVAL && meetingDTO.getLevel() != null && meetingDTO.getLevel().getId() != null
+        ) {
+            boolean oldIsDept = !meetingWorkflowService.isCorporateLevel(meeting.getLevel() != null ? meeting.getLevel().getId() : null);
+            boolean newIsCompany = meetingWorkflowService.isCorporateLevel(meetingDTO.getLevel().getId());
+            if (oldIsDept && newIsCompany && !isSecretary && !isAdmin) {
+                throw new BadRequestAlertException(
+                    "Chỉ thư ký mới được chuyển cấp họp từ phòng ban sang tổng công ty khi cuộc họp đang chờ duyệt",
+                    ENTITY_NAME,
+                    "forbidden"
+                );
+            }
+        }
+
         List<Integer> agendaDurations = request.agendaItems() == null
             ? List.of()
             : request.agendaItems().stream().map(AgendaRequest::durationMinutes).toList();
@@ -280,6 +301,10 @@ public class MeetingResource {
         saveDetails(meetingDTO, request.participants(), request.agendaItems(), request.tasks(), request.documents());
 
         meetingDTO = meetingService.findOne(id).orElse(meetingDTO);
+
+        if (Boolean.TRUE.equals(request.approveAfterUpdate())) {
+            meetingDTO = meetingWorkflowService.approveAfterSecretaryLevelChangeToCompany(id);
+        }
 
         meetingRepository
             .findOneWithToOneRelationships(id)

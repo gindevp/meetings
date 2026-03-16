@@ -10,6 +10,8 @@ import com.gindevp.meeting.domain.enumeration.MeetingStatus;
 import com.gindevp.meeting.repository.MeetingApprovalRepository;
 import com.gindevp.meeting.repository.MeetingLevelRepository;
 import com.gindevp.meeting.repository.MeetingRepository;
+import com.gindevp.meeting.security.AuthoritiesConstants;
+import com.gindevp.meeting.security.SecurityUtils;
 import com.gindevp.meeting.service.dto.MeetingDTO;
 import com.gindevp.meeting.service.mapper.MeetingMapper;
 import com.gindevp.meeting.web.rest.errors.BadRequestAlertException;
@@ -52,8 +54,11 @@ public class MeetingWorkflowService {
         }
         meetingValidationService.validateBeforeSubmit(meeting);
 
-        // Cấp Tổng công ty: tự động phê duyệt
-        if (requiresUnitApproval(meeting)) {
+        // Cấp Tổng công ty: tự động phê duyệt. Cấp Phòng ban: chỉ ROOM_MANAGER (không phải admin) mới auto-approve
+        boolean isRoomManagerCreator = SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.ROOM_MANAGER);
+        boolean isAdmin = SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.ADMIN);
+        boolean isRoomManagerOnly = isRoomManagerCreator && !isAdmin;
+        if (requiresUnitApproval(meeting) || isRoomManagerOnly) {
             meeting.setStatus(MeetingStatus.APPROVED);
             meeting.setApprovedAt(Instant.now());
             meeting.setSubmittedAt(Instant.now());
@@ -245,6 +250,11 @@ public class MeetingWorkflowService {
         return meetingLevelRepository.findById(levelId).map(level -> isCorporateLevelName(level.getName())).orElse(false);
     }
 
+    public boolean isCorporateLevel(Long levelId) {
+        if (levelId == null) return false;
+        return meetingLevelRepository.findById(levelId).map(level -> isCorporateLevelName(level.getName())).orElse(false);
+    }
+
     private boolean isCorporateLevelName(String levelName) {
         if (levelName == null) {
             return false;
@@ -268,5 +278,37 @@ public class MeetingWorkflowService {
 
     private Meeting getMeeting(Long id) {
         return meetingRepository.findById(id).orElseThrow(() -> new BadRequestAlertException("Meeting not found", "meeting", "notFound"));
+    }
+
+    /**
+     * Khi thư ký sửa cuộc họp chờ duyệt, chuyển cấp từ phòng ban sang tổng công ty → tự động phê duyệt.
+     */
+    public MeetingDTO approveAfterSecretaryLevelChangeToCompany(Long meetingId) {
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(meetingId)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", "meeting", "notFound"));
+        if (meeting.getStatus() != MeetingStatus.PENDING_APPROVAL) {
+            return meetingMapper.toDto(meeting);
+        }
+        if (!requiresUnitApproval(meeting)) {
+            return meetingMapper.toDto(meeting);
+        }
+        boolean isSecretary = SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.ROLE_SECRETARY);
+        boolean isAdmin = SecurityUtils.hasCurrentUserThisAuthority(AuthoritiesConstants.ADMIN);
+        if (!isSecretary && !isAdmin) {
+            throw new BadRequestAlertException(
+                "Chỉ thư ký mới được chuyển cấp họp từ phòng ban sang tổng công ty khi cuộc họp đang chờ duyệt",
+                "meeting",
+                "forbidden"
+            );
+        }
+        meeting.setStatus(MeetingStatus.APPROVED);
+        meeting.setApprovedAt(Instant.now());
+        if (meeting.getSubmittedAt() == null) {
+            meeting.setSubmittedAt(Instant.now());
+        }
+        Meeting saved = meetingRepository.save(meeting);
+        meetingNotificationService.notifyMeetingCreatedOrUpdated(saved, true);
+        return meetingMapper.toDto(saved);
     }
 }
