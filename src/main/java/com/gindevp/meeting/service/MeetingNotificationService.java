@@ -230,6 +230,120 @@ public class MeetingNotificationService {
     }
 
     /**
+     * Notify ROOM_MANAGER users when a meeting needs room approval (PENDING_APPROVAL).
+     */
+    public void notifyRoomManagersPendingApproval(Meeting meeting) {
+        if (meeting == null || meeting.getId() == null) return;
+        if (meeting.getStatus() != MeetingStatus.PENDING_APPROVAL) return;
+
+        List<User> roomManagers = userRepository.findAllRoomManagersActivated();
+        if (roomManagers == null || roomManagers.isEmpty()) return;
+
+        String title = "Có cuộc họp cần phê duyệt: " + meeting.getTitle();
+        String message = "Vui lòng phê duyệt/từ chối cuộc họp đang chờ phê duyệt.";
+        String linkUrl = "/plans?tab=pending&meetingId=" + meeting.getId();
+
+        for (User rm : roomManagers) {
+            if (rm == null || rm.getId() == null) continue;
+            if (!notificationSettingsService.isApprovalNotifEnabled(rm.getId())) continue;
+
+            notificationService.create(rm.getId(), title, message, "MEETING_ROOM_APPROVAL", linkUrl);
+
+            if (rm.getEmail() != null && !rm.getEmail().isBlank()) {
+                String emailSubject = "Yêu cầu phê duyệt cuộc họp: " + meeting.getTitle();
+                Map<String, Object> vars = new HashMap<>();
+                vars.put("title", title);
+                vars.put("message", message);
+                vars.put("linkUrl", linkUrl);
+                mailService.sendMeetingNotificationEmail(rm, emailSubject, "mail/meetingNotificationEmail", vars);
+            }
+        }
+    }
+
+    /**
+     * Notify all related users when a meeting is cancelled (CANCELED).
+     * Related: requester, host, secretary, invited users, and department secretaries (for department participants).
+     */
+    public void notifyMeetingCancelled(Meeting meeting, User cancelledBy) {
+        if (meeting == null || meeting.getId() == null) return;
+        if (meeting.getStatus() != MeetingStatus.CANCELED) return;
+
+        String cancellerName = cancelledBy != null
+            ? (cancelledBy.getFirstName() != null || cancelledBy.getLastName() != null
+                    ? (String.valueOf(cancelledBy.getFirstName() == null ? "" : cancelledBy.getFirstName()).trim() +
+                        " " +
+                        String.valueOf(cancelledBy.getLastName() == null ? "" : cancelledBy.getLastName()).trim()).trim()
+                    : cancelledBy.getLogin())
+            : "hệ thống";
+
+        String title = "Cuộc họp đã bị hủy: " + meeting.getTitle();
+        String message = "Cuộc họp đã bị hủy bởi " + cancellerName + ".";
+        String linkUrl = "/plans?tab=cancelled&meetingId=" + meeting.getId();
+
+        Set<Long> notifiedUserIds = new HashSet<>();
+
+        // requester
+        User requester = meeting.getRequester();
+        if (requester != null && requester.getId() != null) {
+            notifyUserMeetingCancelled(requester, title, message, linkUrl);
+            notifiedUserIds.add(requester.getId());
+        }
+
+        // host
+        User host = meeting.getHost();
+        if (host != null && host.getId() != null && !notifiedUserIds.contains(host.getId())) {
+            notifyUserMeetingCancelled(host, title, message, linkUrl);
+            notifiedUserIds.add(host.getId());
+        }
+
+        // secretary
+        User secretary = meeting.getSecretary();
+        if (secretary != null && secretary.getId() != null && !notifiedUserIds.contains(secretary.getId())) {
+            notifyUserMeetingCancelled(secretary, title, message, linkUrl);
+            notifiedUserIds.add(secretary.getId());
+        }
+
+        // participants
+        List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingId(meeting.getId());
+        for (MeetingParticipant p : participants) {
+            if (p == null) continue;
+            if (p.getUser() != null && p.getUser().getId() != null) {
+                Long uid = p.getUser().getId();
+                if (notifiedUserIds.contains(uid)) continue;
+                notifyUserMeetingCancelled(p.getUser(), title, message, linkUrl);
+                notifiedUserIds.add(uid);
+                continue;
+            }
+            if (p.getDepartment() != null && p.getDepartment().getId() != null) {
+                Long deptId = p.getDepartment().getId();
+                List<User> secs = userRepository.findSecretariesByDepartmentId(deptId);
+                for (User sec : secs) {
+                    if (sec == null || sec.getId() == null) continue;
+                    if (notifiedUserIds.contains(sec.getId())) continue;
+                    notifyUserMeetingCancelled(sec, title, message, linkUrl);
+                    notifiedUserIds.add(sec.getId());
+                }
+            }
+        }
+    }
+
+    private void notifyUserMeetingCancelled(User user, String title, String message, String linkUrl) {
+        if (user == null || user.getId() == null) return;
+        if (!notificationSettingsService.isEmailMeetingsEnabled(user.getId())) return;
+
+        notificationService.create(user.getId(), title, message, "MEETING_CANCELED", linkUrl);
+
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            String emailSubject = "Thông báo hủy cuộc họp: " + title.replace("Cuộc họp đã bị hủy: ", "");
+            Map<String, Object> vars = new HashMap<>();
+            vars.put("title", title);
+            vars.put("message", message);
+            vars.put("linkUrl", linkUrl);
+            mailService.sendMeetingNotificationEmail(user, emailSubject, "mail/meetingNotificationEmail", vars);
+        }
+    }
+
+    /**
      * Notify a user that they have been selected as department representative for a meeting.
      */
     public void notifyUserSelectedAsRepresentative(Meeting meeting, User user) {

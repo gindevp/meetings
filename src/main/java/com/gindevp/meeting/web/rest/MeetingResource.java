@@ -625,10 +625,18 @@ public class MeetingResource {
         Meeting meeting = meetingRepository
             .findOneWithToOneRelationships(id)
             .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
-        if (!canManageMeeting(meeting, currentUser())) {
-            throw new BadRequestAlertException("Only requester, host or secretary can cancel this meeting", ENTITY_NAME, "forbidden");
+        User user = currentUser();
+        boolean isAdmin = user.getAuthorities() != null && user.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName()));
+        boolean isHost = meeting.getHost() != null && meeting.getHost().getId() != null && meeting.getHost().getId().equals(user.getId());
+        boolean isSecretary =
+            meeting.getSecretary() != null && meeting.getSecretary().getId() != null && meeting.getSecretary().getId().equals(user.getId());
+        if (!isAdmin && !isHost && !isSecretary) {
+            throw new BadRequestAlertException("Only host or secretary can cancel this meeting", ENTITY_NAME, "forbidden");
         }
-        MeetingDTO dto = meetingWorkflowService.cancel(id);
+        if (meeting.getStartTime() == null || Instant.now().isAfter(meeting.getStartTime())) {
+            throw new BadRequestAlertException("Only upcoming meetings can be cancelled", ENTITY_NAME, "invalidState");
+        }
+        MeetingDTO dto = meetingWorkflowService.cancel(id, user);
         return ResponseEntity.ok(dto);
     }
 

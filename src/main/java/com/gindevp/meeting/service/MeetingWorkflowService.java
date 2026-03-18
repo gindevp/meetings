@@ -69,6 +69,9 @@ public class MeetingWorkflowService {
         }
 
         Meeting saved = meetingRepository.save(meeting);
+        if (saved.getStatus() == MeetingStatus.PENDING_APPROVAL) {
+            meetingNotificationService.notifyRoomManagersPendingApproval(saved);
+        }
         if (saved.getStatus() == MeetingStatus.APPROVED) {
             meetingNotificationService.notifyMeetingCreatedOrUpdated(saved, true);
         }
@@ -188,14 +191,18 @@ public class MeetingWorkflowService {
         return meetingMapper.toDto(meeting);
     }
 
-    public MeetingDTO cancel(Long meetingId) {
+    public MeetingDTO cancel(Long meetingId, User cancelledBy) {
         Meeting meeting = getMeeting(meetingId);
         if (meeting.getStatus() == MeetingStatus.CANCELED) {
             throw new BadRequestAlertException("Meeting already cancelled", "meeting", "alreadyCancelled");
         }
         meeting.setStatus(MeetingStatus.CANCELED);
         meeting.setCanceledAt(Instant.now());
-        return meetingMapper.toDto(meetingRepository.save(meeting));
+        Meeting saved = meetingRepository.saveAndFlush(meeting);
+        meetingRepository
+            .findOneWithToOneRelationships(meetingId)
+            .ifPresent(m -> meetingNotificationService.notifyMeetingCancelled(m, cancelledBy));
+        return meetingMapper.toDto(saved);
     }
 
     public MeetingDTO complete(Long meetingId) {
