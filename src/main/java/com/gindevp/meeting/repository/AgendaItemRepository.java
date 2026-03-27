@@ -14,4 +14,7 @@ public interface AgendaItemRepository extends JpaRepository<AgendaItem, Long> {
     @Modifying
     @Query("delete from AgendaItem ai where ai.meeting.id = :meetingId")
     void deleteByMeetingId(@Param("meetingId") Long meetingId);
+
+    @Query("select ai from AgendaItem ai where ai.meeting.id = :meetingId order by ai.itemOrder asc")
+    java.util.List<AgendaItem> findByMeetingId(@Param("meetingId") Long meetingId);
 }

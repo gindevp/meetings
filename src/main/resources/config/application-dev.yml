@@ -19,6 +19,14 @@ logging:
     tech.jhipster: DEBUG
     org.hibernate.SQL: DEBUG
     com.gindevp.meeting: DEBUG
+    # Avoid noisy Java HttpClient internal DEBUG logs (OpenAI calls use RestClient/HttpClient under the hood)
+    jdk.internal.httpclient.debug: INFO
+    jdk.internal.httpclient: INFO
+
+management:
+  health:
+    mail:
+      enabled: false
 
 spring:
   docker:
@@ -121,3 +129,12 @@ jhipster:
 application:
   liquibase:
     async-start: false # Chạy Liquibase đồng bộ để schema sẵn sàng trước khi app start
+  ai:
+    openai:
+      # Không hardcode secret key ở đây. Set biến môi trường OPENAI_API_KEY trên máy bạn.
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-4o-mini}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      timeout-ms: ${OPENAI_TIMEOUT_MS:30000}
+  notifications:
+    weekly-report-on-startup: false

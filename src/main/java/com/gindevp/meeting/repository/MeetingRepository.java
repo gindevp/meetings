@@ -24,6 +24,9 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     @Query("select meeting from Meeting meeting where meeting.host.login = ?#{authentication.name}")
     List<Meeting> findByHostIsCurrentUser();
 
+    @Query("select meeting from Meeting meeting where meeting.secretary.login = ?#{authentication.name}")
+    List<Meeting> findBySecretaryIsCurrentUser();
+
     default Optional<Meeting> findOneWithEagerRelationships(Long id) {
         return this.findOneWithToOneRelationships(id);
     }

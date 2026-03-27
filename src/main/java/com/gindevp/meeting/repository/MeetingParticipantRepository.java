@@ -64,6 +64,12 @@ public interface MeetingParticipantRepository extends JpaRepository<MeetingParti
     @Query("select p from MeetingParticipant p left join fetch p.user left join fetch p.department where p.meeting.id = :meetingId")
     List<MeetingParticipant> findByMeetingId(@Param("meetingId") Long meetingId);
 
+    @Query("select count(p) from MeetingParticipant p where p.meeting.id = :meetingId")
+    long countByMeetingId(@Param("meetingId") Long meetingId);
+
+    @Query("select p from MeetingParticipant p left join fetch p.meeting where p.user.login = ?#{authentication.name}")
+    List<MeetingParticipant> findByCurrentUserWithMeeting();
+
     @Query(
         "select count(p) from MeetingParticipant p where p.meeting.id = :meetingId and (" +
         "p.department.id = :departmentId or (p.user is not null and p.user.department.id = :departmentId))"

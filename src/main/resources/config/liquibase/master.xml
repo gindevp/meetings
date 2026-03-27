@@ -41,6 +41,7 @@
     <include file="config/liquibase/changelog/202603070001_add_user_position.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603070002_add_meeting_secretary.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603070003_add_participant_confirmation_status.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/202603070004_added_entity_AiMeetingSuggestion.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260307100001_added_entity_Setting.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260307100002_added_entity_Notification.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/202603080001_add_equipment_total_quantity.xml" relativeToChangelogFile="false"/>

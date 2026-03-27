@@ -21,6 +21,10 @@ import com.gindevp.meeting.service.MeetingService;
 import com.gindevp.meeting.service.MeetingTaskService;
 import com.gindevp.meeting.service.MeetingValidationService;
 import com.gindevp.meeting.service.MeetingWorkflowService;
+import com.gindevp.meeting.service.ai.AiChatMessageDTO;
+import com.gindevp.meeting.service.ai.AiMeetingSuggestionDTO;
+import com.gindevp.meeting.service.ai.AiMeetingSuggestionService;
+import com.gindevp.meeting.service.ai.MeetingAiAssistantService;
 import com.gindevp.meeting.service.dto.AgendaItemDTO;
 import com.gindevp.meeting.service.dto.DepartmentDTO;
 import com.gindevp.meeting.service.dto.MeetingDTO;
@@ -99,6 +103,9 @@ public class MeetingResource {
 
     private final MeetingValidationService meetingValidationService;
 
+    private final AiMeetingSuggestionService aiMeetingSuggestionService;
+    private final MeetingAiAssistantService meetingAiAssistantService;
+
     public MeetingResource(
         MeetingService meetingService,
         UserRepository userRepository,
@@ -114,7 +121,9 @@ public class MeetingResource {
         MeetingDocumentRepository meetingDocumentRepository,
         DepartmentRepository departmentRepository,
         MeetingNotificationService meetingNotificationService,
-        MeetingValidationService meetingValidationService
+        MeetingValidationService meetingValidationService,
+        AiMeetingSuggestionService aiMeetingSuggestionService,
+        MeetingAiAssistantService meetingAiAssistantService
     ) {
         this.meetingService = meetingService;
         this.userRepository = userRepository;
@@ -131,6 +140,8 @@ public class MeetingResource {
         this.departmentRepository = departmentRepository;
         this.meetingNotificationService = meetingNotificationService;
         this.meetingValidationService = meetingValidationService;
+        this.aiMeetingSuggestionService = aiMeetingSuggestionService;
+        this.meetingAiAssistantService = meetingAiAssistantService;
     }
 
     @PostMapping("")
@@ -651,6 +662,78 @@ public class MeetingResource {
         MeetingDTO dto = meetingWorkflowService.complete(id);
         return ResponseEntity.ok(dto);
     }
+
+    public record AiSuggestRequest(Boolean forceRegenerate) {}
+
+    public record AiChatRequest(List<AiChatMessageDTO> messages) {}
+
+    /**
+     * Phase 1: Generate AI suggestions (rule-based) for meeting minutes and tasks.
+     * Returns the latest DRAFT suggestion unless forceRegenerate=true.
+     */
+    @PostMapping("/{id}/ai/suggest-minutes")
+    public ResponseEntity<AiMeetingSuggestionDTO> suggestMinutes(
+        @PathVariable Long id,
+        @RequestBody(required = false) AiSuggestRequest body
+    ) {
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(id)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can use AI suggestions", ENTITY_NAME, "forbidden");
+        }
+        boolean force = body != null && Boolean.TRUE.equals(body.forceRegenerate());
+        AiMeetingSuggestionDTO dto = aiMeetingSuggestionService.generateSuggestion(id, currentUser(), force);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Apply an AI suggestion: creates POST_MEETING tasks from suggested tasks list.
+     */
+    @PostMapping("/{id}/ai/apply-suggestion/{suggestionId}")
+    public ResponseEntity<List<MeetingTaskDTO>> applySuggestion(@PathVariable Long id, @PathVariable Long suggestionId) {
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(id)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can apply AI suggestions", ENTITY_NAME, "forbidden");
+        }
+        List<MeetingTaskDTO> created = aiMeetingSuggestionService.applySuggestion(id, suggestionId, currentUser());
+        return ResponseEntity.ok(created);
+    }
+
+    /**
+     * AI Q&A for meeting detail: answers based on note/objectives + agenda + documents.
+     */
+    @PostMapping("/{id}/ai/chat")
+    public ResponseEntity<Map<String, Object>> aiChat(@PathVariable Long id, @RequestBody(required = false) AiChatRequest body) {
+        Meeting meeting = meetingRepository
+            .findOneWithToOneRelationships(id)
+            .orElseThrow(() -> new BadRequestAlertException("Meeting not found", ENTITY_NAME, "notfound"));
+        if (!canManageMeeting(meeting, currentUser())) {
+            throw new BadRequestAlertException("Only requester, host or secretary can use AI chat", ENTITY_NAME, "forbidden");
+        }
+        List<String> agendaTopics = agendaItemRepository
+            .findByMeetingId(id)
+            .stream()
+            .map(ai -> ai.getTopic() != null ? ai.getTopic().trim() : "")
+            .filter(s -> !s.isBlank())
+            .toList();
+        List<com.gindevp.meeting.domain.MeetingParticipant> participants = meetingParticipantRepository.findByMeetingId(id);
+        List<com.gindevp.meeting.domain.MeetingTask> tasks = meetingTaskRepository.findByMeetingId(id);
+        List<com.gindevp.meeting.domain.MeetingDocument> docs = meetingDocumentRepository.findByMeetingId(id);
+        String answer = meetingAiAssistantService.answerQuestion(
+            meeting,
+            agendaTopics,
+            participants,
+            tasks,
+            docs,
+            body != null ? body.messages() : List.of()
+        );
+        return ResponseEntity.ok(Map.of("answer", answer));
+    }
+
+    // (Removed) AI controlled task suggestions: feature disabled for now.
 
     private User currentUser() {
         String login = SecurityUtils.getCurrentUserLogin()

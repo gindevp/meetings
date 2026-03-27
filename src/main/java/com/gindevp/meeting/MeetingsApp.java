@@ -2,6 +2,7 @@ package com.gindevp.meeting;
 
 import com.gindevp.meeting.config.ApplicationProperties;
 import com.gindevp.meeting.config.CRLFLogConverter;
+import com.gindevp.meeting.service.ai.OpenAiProperties;
 import jakarta.annotation.PostConstruct;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -20,7 +21,7 @@ import tech.jhipster.config.DefaultProfileUtil;
 import tech.jhipster.config.JHipsterConstants;
 
 @SpringBootApplication
-@EnableConfigurationProperties({ LiquibaseProperties.class, ApplicationProperties.class })
+@EnableConfigurationProperties({ LiquibaseProperties.class, ApplicationProperties.class, OpenAiProperties.class })
 public class MeetingsApp {
 
     private static final Logger LOG = LoggerFactory.getLogger(MeetingsApp.class);

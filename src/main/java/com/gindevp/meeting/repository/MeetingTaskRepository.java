@@ -65,4 +65,10 @@ public interface MeetingTaskRepository extends JpaRepository<MeetingTask, Long> 
 
     @Query("select t from MeetingTask t where t.meeting.id = :meetingId and t.department.id = :departmentId")
     List<MeetingTask> findByMeetingIdAndDepartmentId(@Param("meetingId") Long meetingId, @Param("departmentId") Long departmentId);
+
+    @Query("select t from MeetingTask t left join fetch t.assignee left join fetch t.department where t.meeting.id = :meetingId")
+    List<MeetingTask> findByMeetingId(@Param("meetingId") Long meetingId);
+
+    @Query("select count(t) from MeetingTask t where t.meeting.id = :meetingId")
+    long countByMeetingId(@Param("meetingId") Long meetingId);
 }

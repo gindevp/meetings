@@ -1,5 +1,8 @@
 package com.gindevp.meeting.config;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.Executor;
 import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
@@ -56,7 +59,7 @@ public class LiquibaseConfiguration {
                 dataSourceProperties
             );
         }
-        liquibase.setChangeLog("classpath:config/liquibase/master.xml");
+        liquibase.setChangeLog(resolveChangeLogLocation());
         if (!CollectionUtils.isEmpty(liquibaseProperties.getContexts())) {
             liquibase.setContexts(StringUtils.collectionToCommaDelimitedString(liquibaseProperties.getContexts()));
         }
@@ -79,5 +82,22 @@ public class LiquibaseConfiguration {
             LOG.debug("Configuring Liquibase");
         }
         return liquibase;
+    }
+
+    private String resolveChangeLogLocation() {
+        // When running in dev (especially with devtools), the classpath can include both:
+        // - src/main/resources (as a separate entry)
+        // - target/classes
+        // which makes Liquibase detect duplicate "classpath:config/liquibase/master.xml".
+        // Pointing directly to the source file avoids duplicate classpath resources.
+        if (env.acceptsProfiles(p -> p.test("dev"))) {
+            try {
+                Path p = Paths.get("src/main/resources/config/liquibase/master.xml").toAbsolutePath().normalize();
+                if (Files.exists(p)) return "file:" + p.toString();
+            } catch (Exception e) {
+                // fall through
+            }
+        }
+        return "classpath:config/liquibase/master.xml";
     }
 }

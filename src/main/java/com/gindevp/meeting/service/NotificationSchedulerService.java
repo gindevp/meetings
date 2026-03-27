@@ -1,5 +1,6 @@
 package com.gindevp.meeting.service;
 
+import com.gindevp.meeting.config.ApplicationProperties;
 import com.gindevp.meeting.domain.Meeting;
 import com.gindevp.meeting.domain.MeetingParticipant;
 import com.gindevp.meeting.domain.MeetingTask;
@@ -39,6 +40,7 @@ public class NotificationSchedulerService {
     private final NotificationService notificationService;
     private final MailService mailService;
     private final UserNotificationSettingsService notificationSettingsService;
+    private final ApplicationProperties applicationProperties;
 
     public NotificationSchedulerService(
         MeetingRepository meetingRepository,
@@ -47,7 +49,8 @@ public class NotificationSchedulerService {
         UserRepository userRepository,
         NotificationService notificationService,
         MailService mailService,
-        UserNotificationSettingsService notificationSettingsService
+        UserNotificationSettingsService notificationSettingsService,
+        ApplicationProperties applicationProperties
     ) {
         this.meetingRepository = meetingRepository;
         this.meetingParticipantRepository = meetingParticipantRepository;
@@ -56,6 +59,7 @@ public class NotificationSchedulerService {
         this.notificationService = notificationService;
         this.mailService = mailService;
         this.notificationSettingsService = notificationSettingsService;
+        this.applicationProperties = applicationProperties;
     }
 
     /**
@@ -138,6 +142,13 @@ public class NotificationSchedulerService {
      */
     @EventListener(ApplicationReadyEvent.class)
     public void sendWeeklyReportOnStartup() {
+        if (
+            applicationProperties == null ||
+            applicationProperties.getNotifications() == null ||
+            !Boolean.TRUE.equals(applicationProperties.getNotifications().getWeeklyReportOnStartup())
+        ) {
+            return;
+        }
         try {
             sendWeeklyReports();
         } catch (Exception e) {

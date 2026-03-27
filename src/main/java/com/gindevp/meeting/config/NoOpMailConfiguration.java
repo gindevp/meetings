@@ -11,11 +11,10 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.mail.javamail.JavaMailSender;
 
 /**
- * Provides a no-op {@link JavaMailSender} in prod when mail is not configured (e.g. Railway blocks SMTP).
- * Mail health is disabled in prod; this bean allows the app to start without real mail.
+ * Provides a no-op {@link JavaMailSender} when no real mail bean exists (prod without SMTP, or dev fallback).
  */
 @Configuration
-@Profile("prod")
+@Profile({ "prod" })
 public class NoOpMailConfiguration {
 
     @Bean
