@@ -41,6 +41,7 @@ public class NotificationSchedulerService {
     private final MailService mailService;
     private final UserNotificationSettingsService notificationSettingsService;
     private final ApplicationProperties applicationProperties;
+    private final MeetingWorkflowService meetingWorkflowService;
 
     public NotificationSchedulerService(
         MeetingRepository meetingRepository,
@@ -50,7 +51,8 @@ public class NotificationSchedulerService {
         NotificationService notificationService,
         MailService mailService,
         UserNotificationSettingsService notificationSettingsService,
-        ApplicationProperties applicationProperties
+        ApplicationProperties applicationProperties,
+        MeetingWorkflowService meetingWorkflowService
     ) {
         this.meetingRepository = meetingRepository;
         this.meetingParticipantRepository = meetingParticipantRepository;
@@ -60,6 +62,7 @@ public class NotificationSchedulerService {
         this.mailService = mailService;
         this.notificationSettingsService = notificationSettingsService;
         this.applicationProperties = applicationProperties;
+        this.meetingWorkflowService = meetingWorkflowService;
     }
 
     /**
@@ -95,6 +98,43 @@ public class NotificationSchedulerService {
                     vars.put("linkUrl", linkUrl);
                     mailService.sendMeetingNotificationEmail(user, emailSubject, "mail/meetingNotificationEmail", vars);
                 }
+            }
+        }
+    }
+
+    /**
+     * Rule 3: Nếu đến giờ họp mà vẫn chưa phê duyệt thì hệ thống tự từ chối (REJECTED).
+     *
+     * Lý do: cuộc họp đang ở trạng thái PENDING_APPROVAL quá hạn xử lý.
+     * Chạy định kỳ để bắt các trường hợp cron bị trễ.
+     */
+    @Scheduled(cron = "0 */5 * * * ?")
+    public void rejectPendingMeetingsAtStartTime() {
+        Instant now = Instant.now();
+        // allow some cron delay margin
+        Instant from = now.minus(60, ChronoUnit.MINUTES);
+        Instant to = now;
+
+        // Chỉ xử lý trong một khoảng thời gian để tránh quét quá nhiều dữ liệu.
+        List<Meeting> meetingsToReject = meetingRepository.findByStatusAndStartTimeBetween(MeetingStatus.PENDING_APPROVAL, from, to);
+
+        if (meetingsToReject == null || meetingsToReject.isEmpty()) return;
+
+        // dùng một admin làm "người quyết định" cho record meeting_approval
+        List<User> admins = userRepository.findAllAdminsActivated();
+        if (admins == null || admins.isEmpty()) return;
+        User approver = admins.get(0);
+
+        String reason = "Quá thời gian phê duyệt (đến giờ họp nhưng chưa được phê duyệt)";
+
+        for (Meeting meeting : meetingsToReject) {
+            if (meeting == null || meeting.getId() == null) continue;
+            // meetingRepository query đã filter PENDING_APPROVAL, nhưng thêm guard để tránh race condition.
+            if (meeting.getStatus() != MeetingStatus.PENDING_APPROVAL) continue;
+            try {
+                meetingWorkflowService.reject(meeting.getId(), reason, approver);
+            } catch (Exception ex) {
+                LOG.warn("Failed to auto-reject meeting {} due to pending approval timeout: {}", meeting.getId(), ex.getMessage());
             }
         }
     }

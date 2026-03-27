@@ -288,6 +288,11 @@ public class MeetingParticipantService {
         }
         participant.setLateCheckInRequestedAt(Instant.now());
         participant = meetingParticipantRepository.save(participant);
+        try {
+            meetingNotificationService.notifyLateCheckInRequested(participant.getMeeting(), participant.getUser());
+        } catch (Exception ex) {
+            LOG.warn("Could not notify late check-in request for participant {}: {}", participantId, ex.getMessage());
+        }
         return meetingParticipantMapper.toDto(participant);
     }
 
@@ -311,6 +316,11 @@ public class MeetingParticipantService {
         participant.setAttendance(AttendanceStatus.PRESENT);
         participant.setLateCheckInRequestedAt(null);
         participant = meetingParticipantRepository.save(participant);
+        try {
+            meetingNotificationService.notifyLateCheckInDecision(participant.getMeeting(), participant.getUser(), true);
+        } catch (Exception ex) {
+            LOG.warn("Could not notify late check-in approval for participant {}: {}", participantId, ex.getMessage());
+        }
         return meetingParticipantMapper.toDto(participant);
     }
 
@@ -330,6 +340,11 @@ public class MeetingParticipantService {
         }
         participant.setLateCheckInRequestedAt(null);
         participant = meetingParticipantRepository.save(participant);
+        try {
+            meetingNotificationService.notifyLateCheckInDecision(participant.getMeeting(), participant.getUser(), false);
+        } catch (Exception ex) {
+            LOG.warn("Could not notify late check-in rejection for participant {}: {}", participantId, ex.getMessage());
+        }
         return meetingParticipantMapper.toDto(participant);
     }
 

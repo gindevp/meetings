@@ -67,6 +67,10 @@ public class Incident implements Serializable {
     )
     private Meeting meeting;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties(value = { "equipments" }, allowSetters = true)
+    private Room room;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -183,6 +187,19 @@ public class Incident implements Serializable {
 
     public Incident meeting(Meeting meeting) {
         this.setMeeting(meeting);
+        return this;
+    }
+
+    public Room getRoom() {
+        return this.room;
+    }
+
+    public void setRoom(Room room) {
+        this.room = room;
+    }
+
+    public Incident room(Room room) {
+        this.setRoom(room);
         return this;
     }
 

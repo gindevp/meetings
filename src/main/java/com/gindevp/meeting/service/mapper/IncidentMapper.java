@@ -2,9 +2,11 @@ package com.gindevp.meeting.service.mapper;
 
 import com.gindevp.meeting.domain.Incident;
 import com.gindevp.meeting.domain.Meeting;
+import com.gindevp.meeting.domain.Room;
 import com.gindevp.meeting.domain.User;
 import com.gindevp.meeting.service.dto.IncidentDTO;
 import com.gindevp.meeting.service.dto.MeetingDTO;
+import com.gindevp.meeting.service.dto.RoomDTO;
 import com.gindevp.meeting.service.dto.UserDTO;
 import org.mapstruct.*;
 
@@ -16,6 +18,7 @@ public interface IncidentMapper extends EntityMapper<IncidentDTO, Incident> {
     @Mapping(target = "reportedBy", source = "reportedBy", qualifiedByName = "userLogin")
     @Mapping(target = "assignedTo", source = "assignedTo", qualifiedByName = "userLogin")
     @Mapping(target = "meeting", source = "meeting", qualifiedByName = "meetingId")
+    @Mapping(target = "room", source = "room", qualifiedByName = "roomBasic")
     IncidentDTO toDto(Incident s);
 
     @Named("userLogin")
@@ -28,4 +31,11 @@ public interface IncidentMapper extends EntityMapper<IncidentDTO, Incident> {
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
     MeetingDTO toDtoMeetingId(Meeting meeting);
+
+    @Named("roomBasic")
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "code", source = "code")
+    RoomDTO toDtoRoomBasic(Room room);
 }

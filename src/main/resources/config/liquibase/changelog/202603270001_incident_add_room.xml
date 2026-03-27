@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="202603270001-1" author="cursor">
+        <addColumn tableName="incident">
+            <column name="room_id" type="bigint">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202603270001-2" author="cursor">
+        <addForeignKeyConstraint
+            baseTableName="incident"
+            baseColumnNames="room_id"
+            constraintName="fk_incident__room_id"
+            referencedTableName="room"
+            referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -34,6 +34,8 @@ public class IncidentDTO implements Serializable {
 
     private MeetingDTO meeting;
 
+    private RoomDTO room;
+
     public Long getId() {
         return id;
     }
@@ -106,6 +108,14 @@ public class IncidentDTO implements Serializable {
         this.meeting = meeting;
     }
 
+    public RoomDTO getRoom() {
+        return room;
+    }
+
+    public void setRoom(RoomDTO room) {
+        this.room = room;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -140,6 +150,7 @@ public class IncidentDTO implements Serializable {
             ", reportedBy=" + getReportedBy() +
             ", assignedTo=" + getAssignedTo() +
             ", meeting=" + getMeeting() +
+            ", room=" + getRoom() +
             "}";
     }
 }

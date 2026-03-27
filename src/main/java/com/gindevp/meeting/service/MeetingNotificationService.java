@@ -230,6 +230,72 @@ public class MeetingNotificationService {
     }
 
     /**
+     * Notify host/secretary when a participant requests late check-in (điểm danh bù).
+     */
+    public void notifyLateCheckInRequested(Meeting meeting, User participantUser) {
+        if (meeting == null || meeting.getId() == null || participantUser == null || participantUser.getId() == null) return;
+
+        String title = "Yêu cầu điểm danh bù: " + meeting.getTitle();
+        String message = (participantUser.getFirstName() != null || participantUser.getLastName() != null)
+            ? "Người tham dự đã gửi yêu cầu điểm danh bù: " + (participantUser.getFirstName() + " " + participantUser.getLastName()).trim()
+            : "Người tham dự đã gửi yêu cầu điểm danh bù.";
+        String linkUrl = "/plans?tab=approved&meetingId=" + meeting.getId();
+
+        // Host
+        User host = meeting.getHost();
+        if (host != null && host.getId() != null && notificationSettingsService.isApprovalNotifEnabled(host.getId())) {
+            notificationService.create(host.getId(), title, message, "LATE_CHECKIN_REQUEST", linkUrl);
+            if (host.getEmail() != null && !host.getEmail().isBlank()) {
+                Map<String, Object> vars = new HashMap<>();
+                vars.put("title", title);
+                vars.put("message", message);
+                vars.put("linkUrl", linkUrl);
+                mailService.sendMeetingNotificationEmail(host, title, "mail/meetingNotificationEmail", vars);
+            }
+        }
+
+        // Secretary (optional)
+        User secretary = meeting.getSecretary();
+        if (
+            secretary != null &&
+            secretary.getId() != null &&
+            (host == null || !secretary.getId().equals(host.getId())) &&
+            notificationSettingsService.isApprovalNotifEnabled(secretary.getId())
+        ) {
+            notificationService.create(secretary.getId(), title, message, "LATE_CHECKIN_REQUEST", linkUrl);
+            if (secretary.getEmail() != null && !secretary.getEmail().isBlank()) {
+                Map<String, Object> vars = new HashMap<>();
+                vars.put("title", title);
+                vars.put("message", message);
+                vars.put("linkUrl", linkUrl);
+                mailService.sendMeetingNotificationEmail(secretary, title, "mail/meetingNotificationEmail", vars);
+            }
+        }
+    }
+
+    /**
+     * Notify participant when late check-in request is approved/rejected.
+     */
+    public void notifyLateCheckInDecision(Meeting meeting, User participantUser, boolean approved) {
+        if (meeting == null || meeting.getId() == null || participantUser == null || participantUser.getId() == null) return;
+        if (!notificationSettingsService.isApprovalNotifEnabled(participantUser.getId())) return;
+
+        String statusText = approved ? "được chấp nhận" : "bị từ chối";
+        String title = "Yêu cầu điểm danh bù " + statusText + ": " + meeting.getTitle();
+        String message = approved ? "Yêu cầu điểm danh bù của bạn đã được chấp nhận." : "Yêu cầu điểm danh bù của bạn đã bị từ chối.";
+        String linkUrl = "/plans?tab=approved&meetingId=" + meeting.getId();
+
+        notificationService.create(participantUser.getId(), title, message, "LATE_CHECKIN_DECISION", linkUrl);
+        if (participantUser.getEmail() != null && !participantUser.getEmail().isBlank()) {
+            Map<String, Object> vars = new HashMap<>();
+            vars.put("title", title);
+            vars.put("message", message);
+            vars.put("linkUrl", linkUrl);
+            mailService.sendMeetingNotificationEmail(participantUser, title, "mail/meetingNotificationEmail", vars);
+        }
+    }
+
+    /**
      * Notify ROOM_MANAGER users when a meeting needs room approval (PENDING_APPROVAL).
      */
     public void notifyRoomManagersPendingApproval(Meeting meeting) {
