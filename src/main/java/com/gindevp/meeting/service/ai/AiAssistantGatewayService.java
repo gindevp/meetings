@@ -28,8 +28,10 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 @Service
@@ -63,9 +65,14 @@ public class AiAssistantGatewayService {
         this.meetingTaskRepository = meetingTaskRepository;
         this.meetingDocumentRepository = meetingDocumentRepository;
         this.incidentRepository = incidentRepository;
+        int timeoutMs = (int) Math.max(5000L, props.getTimeoutMs());
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(timeoutMs);
+        requestFactory.setReadTimeout(timeoutMs);
         this.restClient = restClientBuilder
             .baseUrl(props.getBaseUrl())
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .requestFactory(requestFactory)
             .build();
     }
 
@@ -654,6 +661,12 @@ public class AiAssistantGatewayService {
             throw new BadRequestAlertException("OpenAI quota/rate limit exceeded. Check billing.", ENTITY_NAME, "openai_quota");
         } catch (HttpClientErrorException.Unauthorized e) {
             throw new BadRequestAlertException("OpenAI API key invalid.", ENTITY_NAME, "openai_unauthorized");
+        } catch (ResourceAccessException e) {
+            throw new BadRequestAlertException(
+                "OpenAI phản hồi quá chậm hoặc mạng không ổn định. Vui lòng thử lại sau.",
+                ENTITY_NAME,
+                "openai_timeout"
+            );
         }
     }
 
