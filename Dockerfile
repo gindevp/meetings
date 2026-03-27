@@ -7,7 +7,7 @@ COPY sonar-project.properties .
 COPY src ./src
 
 # Build backend jar only for Railway (disable webapp profile explicitly)
-RUN mvn -DskipTests -Dskip.webapp=true -P!webapp -Dcheckstyle.skip=true -Dspotless.skip=true -Djacoco.skip=true package
+RUN mvn -DskipTests -Dskip.webapp=true -P!webapp -Dcheckstyle.skip=true -Dspotless.skip=true -Djacoco.skip=true -Dmodernizer.skip=true package
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
