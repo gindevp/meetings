@@ -1,6 +1,7 @@
 # Railway config: tăng timeout + heap để app kịp start (Liquibase + Hibernate lâu)
 # Required Variables (Railway dashboard): SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME,
 #   SPRING_DATASOURCE_PASSWORD, JHIPSTER_SECURITY_AUTHENTICATION_JWT_BASE64_SECRET (e.g. openssl rand -base64 64)
+# AI (gợi ý biên bản + trợ lý /api/ai/chat): OPENAI_API_KEY; tùy chọn OPENAI_MODEL, OPENAI_BASE_URL, OPENAI_TIMEOUT_MS
 #
 # Khi dùng Dockerfile (meetings/Dockerfile): jar trong image là app.jar → startCommand dùng app.jar
 # Khi dùng Nixpacks (không Dockerfile) + Root Directory = "meetings": jar tại target/meetings-0.0.1-SNAPSHOT.jar

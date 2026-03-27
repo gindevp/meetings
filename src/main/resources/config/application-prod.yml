@@ -146,4 +146,13 @@ jhipster:
 # https://www.jhipster.tech/common-application-properties/
 # ===================================================================
 
-# application:
+application:
+  ai:
+    openai:
+      # Set OPENAI_API_KEY in the host environment (Railway Variables, Docker, etc.). Do not commit secrets.
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-4o-mini}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      timeout-ms: ${OPENAI_TIMEOUT_MS:30000}
+  notifications:
+    weekly-report-on-startup: false
