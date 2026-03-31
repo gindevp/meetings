@@ -202,6 +202,22 @@ public class MeetingParticipantResource {
     }
 
     /**
+     * Department invitation decline: secretary of invited department (or admin) declines a department-only participant.
+     * Body: { "absentReason": "..." }
+     */
+    @PostMapping("/{id}/decline-department")
+    public ResponseEntity<MeetingParticipantDTO> declineDepartmentInvitation(
+        @PathVariable("id") Long id,
+        @RequestBody Map<String, String> body
+    ) {
+        String currentLogin = SecurityUtils.getCurrentUserLogin()
+            .orElseThrow(() -> new BadRequestAlertException("Not authenticated", ENTITY_NAME, "unauthorized"));
+        String absentReason = body.get("absentReason");
+        MeetingParticipantDTO dto = meetingParticipantService.declineDepartmentInvitation(id, currentLogin, absentReason);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
      * Secretary selects individual representatives for a department-only participant.
      * Body: { "userIds": [1, 2, 3] }
      */

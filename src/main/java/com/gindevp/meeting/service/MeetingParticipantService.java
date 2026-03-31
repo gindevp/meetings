@@ -228,6 +228,68 @@ public class MeetingParticipantService {
     }
 
     /**
+     * Department invitation decline flow: secretary of the invited department (or admin) can decline
+     * a department-only participant (no user assigned yet).
+     * This marks the department participant as DECLINED and stores absentReason.
+     */
+    public MeetingParticipantDTO declineDepartmentInvitation(Long participantId, String currentUserLogin, String absentReason) {
+        if (absentReason == null || absentReason.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Absent reason is required when declining");
+        }
+
+        MeetingParticipant deptParticipant = meetingParticipantRepository
+            .findByIdWithMeetingAndDepartment(participantId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participant not found"));
+
+        if (deptParticipant.getUser() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not a department-only participant");
+        }
+        if (deptParticipant.getDepartment() == null || deptParticipant.getDepartment().getId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant must be department-based");
+        }
+        Meeting meeting = deptParticipant.getMeeting();
+        if (meeting == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Participant has no meeting");
+        }
+        if (!isCorporateLevel(meeting)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meeting must be company-level");
+        }
+        if (meeting.getEndTime() != null && Instant.now().isAfter(meeting.getEndTime())) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Đã quá thời gian cuộc họp, không thể từ chối. Vui lòng liên hệ quản trị nếu cần."
+            );
+        }
+
+        User currentUser = userRepository
+            .findOneWithAuthoritiesByLogin(currentUserLogin)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User not found"));
+        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getName()));
+        boolean isSecretary = currentUser.getAuthorities().stream().anyMatch(a -> "ROLE_SECRETARY".equals(a.getName()));
+        boolean sameDepartment =
+            currentUser.getDepartment() != null && currentUser.getDepartment().getId().equals(deptParticipant.getDepartment().getId());
+
+        if (!isAdmin && (!isSecretary || !sameDepartment)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Only secretary of the same department or admin can decline department invitation"
+            );
+        }
+
+        deptParticipant.setConfirmationStatus(ConfirmationStatus.DECLINED);
+        deptParticipant.setAbsentReason(absentReason.trim());
+        deptParticipant = meetingParticipantRepository.save(deptParticipant);
+        LOG.info(
+            "Department invitation declined: participantId={}, meetingId={}, departmentId={}, by={}",
+            participantId,
+            meeting.getId(),
+            deptParticipant.getDepartment().getId(),
+            currentUserLogin
+        );
+        return meetingParticipantMapper.toDto(deptParticipant);
+    }
+
+    /**
      * Update attendance (roll call). Host/secretary can set any participant's attendance;
      * participant can only set own attendance to PRESENT (self check-in).
      */
