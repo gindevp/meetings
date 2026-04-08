@@ -39,14 +39,19 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         return this.findAllWithToOneRelationships(pageable);
     }
 
+    /**
+     * Danh sách cuộc họp cho UI: mặc định chỉ bản ghi ACTIVE (hoặc null = legacy).
+     * Bản ghi soft-delete (INACTIVE) vẫn trả về nếu người đăng nhập là người tạo (requester),
+     * để tab "Đã xóa" trên frontend có dữ liệu.
+     */
     @Query(
-        value = "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host left join fetch meeting.secretary where meeting.statusRecord = 'ACTIVE'",
-        countQuery = "select count(meeting) from Meeting meeting where meeting.statusRecord = 'ACTIVE'"
+        value = "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host left join fetch meeting.secretary where (meeting.statusRecord is null or meeting.statusRecord = 'ACTIVE') or (meeting.statusRecord = 'INACTIVE' and meeting.requester.login = ?#{authentication.name})",
+        countQuery = "select count(meeting) from Meeting meeting where (meeting.statusRecord is null or meeting.statusRecord = 'ACTIVE') or (meeting.statusRecord = 'INACTIVE' and meeting.requester.login = ?#{authentication.name})"
     )
     Page<Meeting> findAllWithToOneRelationships(Pageable pageable);
 
     @Query(
-        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host left join fetch meeting.secretary where meeting.statusRecord = 'ACTIVE'"
+        "select meeting from Meeting meeting left join fetch meeting.type left join fetch meeting.level left join fetch meeting.organizerDepartment left join fetch meeting.room left join fetch meeting.requester left join fetch meeting.host left join fetch meeting.secretary where (meeting.statusRecord is null or meeting.statusRecord = 'ACTIVE') or (meeting.statusRecord = 'INACTIVE' and meeting.requester.login = ?#{authentication.name})"
     )
     List<Meeting> findAllWithToOneRelationships();
 
