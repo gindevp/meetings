@@ -25,7 +25,7 @@ import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
 /**
- * REST controller for managing {@link com.gindevp.meeting.domain.MeetingParticipant}.
+ * API REST cho {@link com.gindevp.meeting.domain.MeetingParticipant}: CRUD, phản hồi lời mời, điểm danh, điểm danh bù, chọn đại diện.
  */
 @RestController
 @RequestMapping("/api/meeting-participants")
@@ -42,6 +42,10 @@ public class MeetingParticipantResource {
 
     private final MeetingParticipantRepository meetingParticipantRepository;
 
+    /**
+     * @param meetingParticipantService nghiệp vụ participant
+     * @param meetingParticipantRepository kiểm tra tồn tại bản ghi (update/patch)
+     */
     public MeetingParticipantResource(
         MeetingParticipantService meetingParticipantService,
         MeetingParticipantRepository meetingParticipantRepository
@@ -51,11 +55,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * {@code POST  /meeting-participants} : Create a new meetingParticipant.
-     *
-     * @param meetingParticipantDTO the meetingParticipantDTO to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new meetingParticipantDTO, or with status {@code 400 (Bad Request)} if the meetingParticipant has already an ID.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     * {@code POST /meeting-participants} — Tạo participant mới (body không được có id).
      */
     @PostMapping("")
     public ResponseEntity<MeetingParticipantDTO> createMeetingParticipant(@Valid @RequestBody MeetingParticipantDTO meetingParticipantDTO)
@@ -71,14 +71,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * {@code PUT  /meeting-participants/:id} : Updates an existing meetingParticipant.
-     *
-     * @param id the id of the meetingParticipantDTO to save.
-     * @param meetingParticipantDTO the meetingParticipantDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated meetingParticipantDTO,
-     * or with status {@code 400 (Bad Request)} if the meetingParticipantDTO is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the meetingParticipantDTO couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     * {@code PUT /meeting-participants/:id} — Cập nhật toàn bộ participant (id trên path khớp body).
      */
     @PutMapping("/{id}")
     public ResponseEntity<MeetingParticipantDTO> updateMeetingParticipant(
@@ -104,15 +97,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * {@code PATCH  /meeting-participants/:id} : Partial updates given fields of an existing meetingParticipant, field will ignore if it is null
-     *
-     * @param id the id of the meetingParticipantDTO to save.
-     * @param meetingParticipantDTO the meetingParticipantDTO to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated meetingParticipantDTO,
-     * or with status {@code 400 (Bad Request)} if the meetingParticipantDTO is not valid,
-     * or with status {@code 404 (Not Found)} if the meetingParticipantDTO is not found,
-     * or with status {@code 500 (Internal Server Error)} if the meetingParticipantDTO couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
+     * {@code PATCH /meeting-participants/:id} — Cập nhật một phần (merge-patch / JSON).
      */
     @PatchMapping(value = "/{id}", consumes = { "application/json", "application/merge-patch+json" })
     public ResponseEntity<MeetingParticipantDTO> partialUpdateMeetingParticipant(
@@ -140,10 +125,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * {@code GET  /meeting-participants} : get all the meetingParticipants.
-     *
-     * @param eagerload flag to eager load entities from relationships (This is applicable for many-to-many).
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of meetingParticipants in body.
+     * {@code GET /meeting-participants} — Danh sách participant (hiện luôn eager theo service).
      */
     @GetMapping("")
     public List<MeetingParticipantDTO> getAllMeetingParticipants(
@@ -154,10 +136,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * {@code GET  /meeting-participants/:id} : get the "id" meetingParticipant.
-     *
-     * @param id the id of the meetingParticipantDTO to retrieve.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the meetingParticipantDTO, or with status {@code 404 (Not Found)}.
+     * {@code GET /meeting-participants/:id} — Chi tiết một participant.
      */
     @GetMapping("/{id}")
     public ResponseEntity<MeetingParticipantDTO> getMeetingParticipant(@PathVariable("id") Long id) {
@@ -185,7 +164,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * Respond to meeting invitation (confirm or decline). Only the invited user can call this.
+     * {@code POST /meeting-participants/:id/respond} — Xác nhận/từ chối lời mời (chỉ user được mời).
      */
     @PostMapping("/{id}/respond")
     public ResponseEntity<MeetingParticipantDTO> respondToInvitation(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
@@ -202,8 +181,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * Department invitation decline: secretary of invited department (or admin) declines a department-only participant.
-     * Body: { "absentReason": "..." }
+     * {@code POST /meeting-participants/:id/decline-department} — Thư ký phòng ban / admin từ chối lời mời theo phòng ban.
      */
     @PostMapping("/{id}/decline-department")
     public ResponseEntity<MeetingParticipantDTO> declineDepartmentInvitation(
@@ -218,8 +196,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * Secretary selects individual representatives for a department-only participant.
-     * Body: { "userIds": [1, 2, 3] }
+     * {@code POST /meeting-participants/:id/select-representatives} — Chọn đại diện cá nhân cho lời mời phòng ban.
      */
     @PostMapping("/{id}/select-representatives")
     public ResponseEntity<List<MeetingParticipantDTO>> selectRepresentatives(
@@ -239,7 +216,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * Update attendance (roll call). Host/secretary can set any; participant can set own to PRESENT.
+     * {@code PATCH /meeting-participants/:id/attendance} — Cập nhật điểm danh (theo quyền host/secretary/self).
      */
     @PatchMapping("/{id}/attendance")
     public ResponseEntity<MeetingParticipantDTO> updateAttendance(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
@@ -264,7 +241,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * Participant requests late check-in (điểm danh bù). Only for themselves.
+     * {@code POST /meeting-participants/:id/request-late-check-in} — Yêu cầu điểm danh bù (chính participant).
      */
     @PostMapping("/{id}/request-late-check-in")
     public ResponseEntity<MeetingParticipantDTO> requestLateCheckIn(@PathVariable("id") Long id) {
@@ -275,7 +252,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * Host or secretary approves late check-in.
+     * {@code POST /meeting-participants/:id/approve-late-check-in} — Duyệt điểm danh bù (host/thư ký).
      */
     @PostMapping("/{id}/approve-late-check-in")
     public ResponseEntity<MeetingParticipantDTO> approveLateCheckIn(@PathVariable("id") Long id) {
@@ -286,7 +263,7 @@ public class MeetingParticipantResource {
     }
 
     /**
-     * Host or secretary rejects late check-in.
+     * {@code POST /meeting-participants/:id/reject-late-check-in} — Từ chối yêu cầu điểm danh bù.
      */
     @PostMapping("/{id}/reject-late-check-in")
     public ResponseEntity<MeetingParticipantDTO> rejectLateCheckIn(@PathVariable("id") Long id) {

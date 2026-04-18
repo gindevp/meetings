@@ -23,12 +23,13 @@ import org.springframework.web.bind.annotation.*;
 import tech.jhipster.config.JHipsterProperties;
 
 /**
- * REST controller for managing the current user's account.
+ * API tài khoản người dùng hiện tại: đăng ký, kích hoạt, đổi thông tin, avatar, mật khẩu, Expo push token.
  */
 @RestController
 @RequestMapping("/api")
 public class AccountResource {
 
+    /** Lỗi nội bộ khi thao tác tài khoản thất bại (message hiển thị cho client). */
     private static class AccountResourceException extends RuntimeException {
 
         private AccountResourceException(String message) {
@@ -48,6 +49,13 @@ public class AccountResource {
 
     private final JHipsterProperties jHipsterProperties;
 
+    /**
+     * @param userRepository tra cứu user theo login/email
+     * @param userService nghiệp vụ đăng ký, cập nhật, mật khẩu
+     * @param mailService gửi mail (reset mật khẩu...)
+     * @param expoPushTokenService đăng ký token push mobile
+     * @param jHipsterProperties URL redirect sau kích hoạt / reset
+     */
     public AccountResource(
         UserRepository userRepository,
         UserService userService,
@@ -63,7 +71,7 @@ public class AccountResource {
     }
 
     /**
-     * POST /register : register the user.
+     * {@code POST /register} — Đăng ký tài khoản mới; mật khẩu mặc định cố định, không gửi mail kích hoạt (môi trường cloud).
      */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -77,8 +85,7 @@ public class AccountResource {
     }
 
     /**
-     * GET /activate : activate the registered user.
-     * Returns HTML page with success message.
+     * {@code GET /activate} — Kích hoạt tài khoản bằng key; trả về trang HTML thành công/thất bại.
      */
     @GetMapping(value = "/activate", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
@@ -91,7 +98,7 @@ public class AccountResource {
     }
 
     /**
-     * GET /activate : activate the registered user (redirect version).
+     * {@code GET /activate-redirect} — Kích hoạt rồi redirect về URL cấu hình (phiên bản redirect).
      */
     @GetMapping("/activate-redirect")
     public String activateAccount(@RequestParam(value = "key") String key) {
@@ -103,7 +110,7 @@ public class AccountResource {
     }
 
     /**
-     * GET /account : get the current user.
+     * {@code GET /account} — Lấy thông tin user đang đăng nhập (kèm quyền).
      */
     @GetMapping("/account")
     public AdminUserDTO getAccount() {
@@ -114,7 +121,7 @@ public class AccountResource {
     }
 
     /**
-     * GET /account/avatar : get the current user's profile image.
+     * {@code GET /account/avatar} — Trả về ảnh đại diện nhị phân (204 nếu chưa có).
      */
     @GetMapping("/account/avatar")
     public ResponseEntity<byte[]> getAccountAvatar() {
@@ -132,8 +139,7 @@ public class AccountResource {
     }
 
     /**
-     * POST /account/avatar : update the current user's profile image.
-     * Body: { "file": "base64...", "fileContentType": "image/jpeg" }
+     * {@code POST /account/avatar} — Cập nhật ảnh đại diện (base64 trong JSON).
      */
     @PostMapping("/account/avatar")
     public ResponseEntity<Void> saveAccountAvatar(@RequestBody java.util.Map<String, String> body) {
@@ -152,7 +158,7 @@ public class AccountResource {
     }
 
     /**
-     * DELETE /account/avatar : remove the current user's profile image.
+     * {@code DELETE /account/avatar} — Xóa ảnh đại diện đã lưu.
      */
     @DeleteMapping("/account/avatar")
     public ResponseEntity<Void> deleteAccountAvatar() {
@@ -162,7 +168,7 @@ public class AccountResource {
     }
 
     /**
-     * POST /account : update the current user information.
+     * {@code POST /account} — Cập nhật họ tên, email, ngôn ngữ... (email không trùng user khác).
      */
     @PostMapping("/account")
     public void saveAccount(@Valid @RequestBody AdminUserDTO userDTO) {
@@ -204,7 +210,7 @@ public class AccountResource {
     }
 
     /**
-     * POST /account/change-password : changes the current user's password.
+     * {@code POST /account/change-password} — Đổi mật khẩu (cần mật khẩu hiện tại).
      */
     @PostMapping(path = "/account/change-password")
     public void changePassword(@RequestBody PasswordChangeDTO passwordChangeDto) {
@@ -215,7 +221,7 @@ public class AccountResource {
     }
 
     /**
-     * POST /account/reset-password/init : Send an email to reset the password.
+     * {@code POST /account/reset-password/init} — Gửi email chứa link/key reset mật khẩu.
      */
     @PostMapping(path = "/account/reset-password/init")
     public void requestPasswordReset(@RequestBody String mail) {
@@ -228,8 +234,7 @@ public class AccountResource {
     }
 
     /**
-     * POST /account/reset-password/finish : Finish to reset the password.
-     * Returns HTML page with success message.
+     * {@code POST /account/reset-password/finish} — Hoàn tất đặt lại mật khẩu (HTML); key + mật khẩu mới trong body.
      */
     @PostMapping(path = "/account/reset-password/finish", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
@@ -246,7 +251,7 @@ public class AccountResource {
     }
 
     /**
-     * POST /account/reset-password/finish : Finish to reset the password (redirect version).
+     * {@code POST /account/reset-password/finish} — Phiên bản redirect sau khi reset thành công.
      */
     @PostMapping(path = "/account/reset-password/finish")
     public String finishPasswordReset(@RequestBody KeyAndPasswordVM keyAndPassword) {
@@ -261,6 +266,7 @@ public class AccountResource {
         return "redirect:" + jHipsterProperties.getMail().getBaseUrl() + "/password-reset-success";
     }
 
+    /** Kiểm tra độ dài mật khẩu theo giới hạn ManagedUserVM. */
     private static boolean isPasswordLengthInvalid(String password) {
         return (
             StringUtils.isEmpty(password) ||

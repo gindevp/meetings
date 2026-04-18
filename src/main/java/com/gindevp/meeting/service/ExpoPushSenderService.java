@@ -24,6 +24,7 @@ public class ExpoPushSenderService {
     private final ExpoPushTokenRepository expoPushTokenRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
+    /** @param expoPushTokenRepository lưu token Expo theo user để gửi push */
     public ExpoPushSenderService(ExpoPushTokenRepository expoPushTokenRepository) {
         this.expoPushTokenRepository = expoPushTokenRepository;
     }
@@ -44,6 +45,9 @@ public class ExpoPushSenderService {
         }
     }
 
+    /**
+     * Gửi một tin push tới một token Expo (POST mảng message theo đúng format API v2).
+     */
     @SuppressWarnings("unchecked")
     private void sendOne(String to, String title, String body, Map<String, Object> data) {
         try {

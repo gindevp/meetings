@@ -32,7 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Service Implementation for managing {@link com.gindevp.meeting.domain.MeetingParticipant}.
+ * Nghiệp vụ quản lý {@link com.gindevp.meeting.domain.MeetingParticipant}: mời cá nhân/phòng ban,
+ * phản hồi lời mời, điểm danh, điểm danh bù, chọn đại diện phòng ban (cấp tổng công ty).
  */
 @Service
 @Transactional
@@ -51,6 +52,9 @@ public class MeetingParticipantService {
     private final MeetingNotificationService meetingNotificationService;
     private final MeetingTaskRepository meetingTaskRepository;
 
+    /**
+     * Khởi tạo service với repository, mapper và các phụ thuộc thông báo / task.
+     */
     public MeetingParticipantService(
         MeetingParticipantRepository meetingParticipantRepository,
         MeetingParticipantMapper meetingParticipantMapper,
@@ -68,10 +72,10 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Save a meetingParticipant.
+     * Tạo mới người tham gia: kiểm tra chỉ có user hoặc chỉ có phòng ban, rồi lưu DB.
      *
-     * @param meetingParticipantDTO the entity to save.
-     * @return the persisted entity.
+     * @param meetingParticipantDTO dữ liệu người tham gia
+     * @return bản ghi sau khi lưu (DTO)
      */
     public MeetingParticipantDTO save(MeetingParticipantDTO meetingParticipantDTO) {
         LOG.debug("Request to save MeetingParticipant : {}", meetingParticipantDTO);
@@ -82,10 +86,10 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Update a meetingParticipant.
+     * Cập nhật toàn bộ thông tin người tham gia (ghi đè theo DTO).
      *
-     * @param meetingParticipantDTO the entity to save.
-     * @return the persisted entity.
+     * @param meetingParticipantDTO dữ liệu cập nhật
+     * @return bản ghi sau khi lưu (DTO)
      */
     public MeetingParticipantDTO update(MeetingParticipantDTO meetingParticipantDTO) {
         LOG.debug("Request to update MeetingParticipant : {}", meetingParticipantDTO);
@@ -96,10 +100,10 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Partially update a meetingParticipant.
+     * Cập nhật một phần trường (merge): các trường null trong DTO được bỏ qua.
      *
-     * @param meetingParticipantDTO the entity to update partially.
-     * @return the persisted entity.
+     * @param meetingParticipantDTO dữ liệu cần merge
+     * @return DTO sau khi lưu nếu tìm thấy bản ghi
      */
     public Optional<MeetingParticipantDTO> partialUpdate(MeetingParticipantDTO meetingParticipantDTO) {
         LOG.debug("Request to partially update MeetingParticipant : {}", meetingParticipantDTO);
@@ -116,9 +120,9 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Get all the meetingParticipants.
+     * Liệt kê tất cả người tham gia, eager load meeting + user/department liên quan.
      *
-     * @return the list of entities.
+     * @return danh sách DTO
      */
     @Transactional(readOnly = true)
     public List<MeetingParticipantDTO> findAll() {
@@ -131,19 +135,20 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Get all the meetingParticipants with eager load of many-to-many relationships.
+     * Phân trang danh sách người tham gia (eager user theo truy vấn JHipster).
      *
-     * @return the list of entities.
+     * @param pageable tham số phân trang
+     * @return một trang DTO
      */
     public Page<MeetingParticipantDTO> findAllWithEagerRelationships(Pageable pageable) {
         return meetingParticipantRepository.findAllWithEagerRelationships(pageable).map(meetingParticipantMapper::toDto);
     }
 
     /**
-     * Get one meetingParticipant by id.
+     * Lấy một người tham gia theo id (eager các quan hệ cần thiết).
      *
-     * @param id the id of the entity.
-     * @return the entity.
+     * @param id khóa chính
+     * @return DTO nếu tồn tại
      */
     @Transactional(readOnly = true)
     public Optional<MeetingParticipantDTO> findOne(Long id) {
@@ -152,9 +157,9 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Delete the meetingParticipant by id.
+     * Xóa người tham gia theo id (không kiểm tra quyền — dùng nội bộ / admin toàn quyền).
      *
-     * @param id the id of the entity.
+     * @param id khóa chính
      */
     public void delete(Long id) {
         LOG.debug("Request to delete MeetingParticipant : {}", id);
@@ -193,8 +198,8 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Participant (invitee) responds to invitation: confirm or decline attendance.
-     * Only the participant's user (by login) can call this.
+     * Người được mời (theo user) xác nhận hoặc từ chối lời mời; từ chối bắt buộc có lý do.
+     * Sau khi cuộc họp kết thúc không cho đổi trạng thái xác nhận (chỉ còn điểm danh bù).
      */
     public MeetingParticipantDTO respondToInvitation(
         Long participantId,
@@ -228,9 +233,8 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Department invitation decline flow: secretary of the invited department (or admin) can decline
-     * a department-only participant (no user assigned yet).
-     * This marks the department participant as DECLINED and stores absentReason.
+     * Thư ký phòng ban được mời (hoặc admin) từ chối thay cho lời mời theo phòng ban (chưa gán user).
+     * Chỉ áp dụng cuộc họp cấp tổng công ty; ghi nhận DECLINED và lý do vắng.
      */
     public MeetingParticipantDTO declineDepartmentInvitation(Long participantId, String currentUserLogin, String absentReason) {
         if (absentReason == null || absentReason.trim().isEmpty()) {
@@ -290,8 +294,8 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Update attendance (roll call). Host/secretary can set any participant's attendance;
-     * participant can only set own attendance to PRESENT (self check-in).
+     * Cập nhật trạng thái điểm danh: chủ trì/thư ký (hoặc admin) điểm danh hộ; người tham gia chỉ tự điểm danh bản thân.
+     * Sau khi hết giờ kết thúc cuộc họp không cho điểm danh thường (trừ luồng điểm danh bù).
      */
     public MeetingParticipantDTO updateAttendance(Long participantId, String currentUserLogin, AttendanceStatus attendance) {
         MeetingParticipant participant = meetingParticipantRepository
@@ -328,8 +332,8 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Participant requests late check-in (điểm danh bù). Only the participant themselves can request.
-     * Meeting must be APPROVED. Sets lateCheckInRequestedAt so host/secretary can approve or reject.
+     * Người tham gia yêu cầu điểm danh bù (sau khi cuộc họp đã kết thúc); chỉ chính họ được gọi.
+     * Cuộc họp phải đã duyệt (APPROVED); ghi {@code lateCheckInRequestedAt} để chủ trì/thư ký duyệt.
      */
     public MeetingParticipantDTO requestLateCheckIn(Long participantId, String currentUserLogin) {
         MeetingParticipant participant = meetingParticipantRepository
@@ -359,7 +363,7 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Host or secretary approves late check-in: set attendance to PRESENT and clear request.
+     * Chủ trì hoặc thư ký chấp nhận điểm danh bù: đặt điểm danh PRESENT và xóa cờ yêu cầu.
      */
     public MeetingParticipantDTO approveLateCheckIn(Long participantId, String currentUserLogin) {
         MeetingParticipant participant = meetingParticipantRepository
@@ -387,7 +391,7 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Host or secretary rejects late check-in: clear the request.
+     * Chủ trì hoặc thư ký từ chối điểm danh bù: chỉ xóa yêu cầu (không đổi điểm danh).
      */
     public MeetingParticipantDTO rejectLateCheckIn(Long participantId, String currentUserLogin) {
         MeetingParticipant participant = meetingParticipantRepository
@@ -411,8 +415,8 @@ public class MeetingParticipantService {
     }
 
     /**
-     * Secretary selects individual representatives for a department-only participant.
-     * Replaces the department participant with user participants and notifies selected users.
+     * Thư ký chọn đại diện cá nhân cho lời mời theo phòng ban: xác nhận participant phòng ban,
+     * nâng task phòng ban từ TODO lên IN_PROGRESS, tạo participant mới cho từng user và gửi thông báo.
      */
     public List<MeetingParticipantDTO> selectRepresentatives(Long participantId, String currentUserLogin, List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
@@ -504,6 +508,9 @@ public class MeetingParticipantService {
         return result;
     }
 
+    /**
+     * Kiểm tra cấp cuộc họp có phải cấp tổng công ty (chuẩn hóa tên level, không phân biệt dấu).
+     */
     private boolean isCorporateLevel(Meeting meeting) {
         if (meeting.getLevel() == null || meeting.getLevel().getName() == null) return false;
         String name = meeting.getLevel().getName();
@@ -522,6 +529,9 @@ public class MeetingParticipantService {
         );
     }
 
+    /**
+     * Đảm bảo participant gắn đúng một trong hai: user hoặc department, không được cả hai hoặc không có gì.
+     */
     private void validateParticipantTarget(MeetingParticipantDTO dto) {
         boolean hasUser = dto.getUser() != null && dto.getUser().getId() != null;
         boolean hasDepartment = dto.getDepartment() != null && dto.getDepartment().getId() != null;
@@ -535,6 +545,9 @@ public class MeetingParticipantService {
         }
     }
 
+    /**
+     * Kiểm tra user đăng nhập hiện tại có quyền ROLE_ADMIN hay không.
+     */
     private boolean isAdmin(String login) {
         return userRepository
             .findOneWithAuthoritiesByLogin(login)
